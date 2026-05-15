@@ -8,6 +8,8 @@ import urllib.parse
 import urllib.request
 from typing import Any, Dict, List, Optional
 
+# Credentials may be provided via environment variables:
+# JIRA_EMAIL, JIRA_API_TOKEN, XRAY_CLIENT_ID, XRAY_CLIENT_SECRET
 CONFIG_FILE = "jira-xray-config.json"
 
 

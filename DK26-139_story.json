@@ -1,0 +1,14 @@
+{
+  "issue_key": "DK26-139",
+  "summary": "SP3: Q1-3. Dark Mode",
+  "jira_id": "96516",
+  "user_story": "As a User, I want to switch to dark mode so that I can use the platform comfortably in low-light environments.",
+  "acceptance_criteria": [
+    "Toggle available in the user profile or header.",
+    "Dark mode applies to: Dashboard, Assessment screens, Admin pages, Modals and dialogs.",
+    "Dark mode respects accessibility standards (contrast ratio >= 4.5:1).",
+    "User preference is stored and persists across sessions.",
+    "Dark mode applies instantly without page reload."
+  ],
+  "testcases_file": "DK26-139_tests.json"
+}

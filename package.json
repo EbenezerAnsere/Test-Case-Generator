@@ -1,0 +1,27 @@
+{
+  "name": "dodokpo-test-case-generator",
+  "version": "1.0.0",
+  "description": "This repository supports both:\r - environment variables\r - `jira-xray-config.json` config file",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:headed": "npx playwright test --headed",
+    "test:debug": "npx playwright test --debug"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EbenezerAnsere/Test-Case-Generator.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/EbenezerAnsere/Test-Case-Generator/issues"
+  },
+  "homepage": "https://github.com/EbenezerAnsere/Test-Case-Generator#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "dotenv": "^17.4.2"
+  }
+}

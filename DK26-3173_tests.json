@@ -1,0 +1,203 @@
+{
+  "preconditions": [
+    {
+      "id": "PC-DK26-3173-01",
+      "title": "Org administrator authenticated against the staging API with DK26-3173 deployed",
+      "definition": "1. The staging API runs a build that contains DK26-3173.\n2. An organisation administrator account with the archive permission (canArchiveAssessment) is signed in, and its access token is available to an API client (Postman, curl or the browser's developer tools).\n3. Archiving is enabled for the organisation (archivingEnabled is on).\n4. The archive, restore and assessment list requests are known, from the API documentation or from the requests the web app sends when archiving a single assessment, opening the Assessments list and opening Archives > Assessments (/dashboard/archives/assessments). This includes the archived-state filter (availableArchiveState)."
+    },
+    {
+      "id": "PC-DK26-3173-02",
+      "title": "Disposable assessments exist for archiving, including a dispatched one",
+      "definition": "1. At least 30 fresh, non-dispatched assessments have been created in the organisation for this test run, with names that are easy to find (for example 'QA-ARCH-3173-01' to 'QA-ARCH-3173-30'), so a full page and more can be archived.\n2. At least one disposable assessment has been dispatched, with at least one invited candidate who has not finished it.\n3. The IDs of all these assessments are recorded.\n4. The total number of active assessments shown by the list request has been noted before any archiving."
+    },
+    {
+      "id": "PC-DK26-3173-03",
+      "title": "Users and organisations for permission and isolation checks",
+      "definition": "1. User B belongs to the same organisation but their role does not include the permission to archive assessments, and their access token is available.\n2. An administrator of a different organisation is available, with at least one assessment in their own organisation and its ID recorded.\n3. The tester, or an administrator, can switch the organisation's archiving setting (archivingEnabled) off and back on."
+    }
+  ],
+  "tests": [
+    {
+      "id": "TC-DK26-3173-01",
+      "title": "An assessment is archived, and the response names what was archived",
+      "precondition_ids": ["PC-DK26-3173-01", "PC-DK26-3173-02"],
+      "preconditions": "Org administrator authenticated on the staging API with DK26-3173 deployed; disposable non-dispatched assessments exist.",
+      "steps": [
+        "Pick one disposable non-dispatched assessment and note its ID.",
+        "Send the archive request for it as the org administrator.",
+        "Read the status code and the response body.",
+        "Request that assessment by ID and check its state."
+      ],
+      "expected": "The request succeeds with a success status. The response identifies the assessment that was archived, with its ID and organisation, and its state is now archived. No other assessment changes."
+    },
+    {
+      "id": "TC-DK26-3173-02",
+      "title": "Every assessment in a multi-selection is archived when the requests are sent together",
+      "precondition_ids": ["PC-DK26-3173-01", "PC-DK26-3173-02"],
+      "preconditions": "Org administrator authenticated; at least 5 disposable non-dispatched assessments available.",
+      "steps": [
+        "Pick 5 disposable assessments and note their IDs.",
+        "Send the archive request for all 5 at the same time (in parallel), as the web app does for a bulk selection.",
+        "Check the status code of each of the 5 responses.",
+        "Request each of the 5 assessments by ID and check its state."
+      ],
+      "expected": "All 5 requests succeed, and all 5 assessments are archived, not just the first or last. Requests sent at the same time do not interfere with each other: there are no 409, 500 or timeout errors and no assessment is left half-updated."
+    },
+    {
+      "id": "TC-DK26-3173-03",
+      "title": "Archived assessments are excluded from the default active list and its count",
+      "precondition_ids": ["PC-DK26-3173-01", "PC-DK26-3173-02"],
+      "preconditions": "Org administrator authenticated; the active assessment total was noted before archiving; the assessments archived in TC-01 and TC-02 are known.",
+      "steps": [
+        "Request the default assessment list (no archive filter), going through every page.",
+        "Search the results for each archived assessment by ID and by name.",
+        "Compare the total count in the response with the total noted before archiving.",
+        "Search the list by the name of one archived assessment."
+      ],
+      "expected": "None of the archived assessments appear in the default list on any page or in search results. The total count is lower by exactly the number archived, and the paging totals are consistent with the items returned."
+    },
+    {
+      "id": "TC-DK26-3173-04",
+      "title": "Archived assessments are returned by the archived-state filter and stay readable",
+      "precondition_ids": ["PC-DK26-3173-01", "PC-DK26-3173-02"],
+      "preconditions": "Org administrator authenticated; the assessments archived in TC-01 and TC-02 are known; the archived-state filter (availableArchiveState) is known.",
+      "steps": [
+        "Request the assessment list with the archived-state filter, as Archives > Assessments does.",
+        "Check that every assessment archived earlier is returned.",
+        "Check that no active assessment is returned.",
+        "Open one archived assessment by ID and read its details, tests and settings."
+      ],
+      "expected": "The archived-state list returns all archived assessments and only archived ones, each marked as archived. An archived assessment can still be read by ID with its tests and settings intact, so nothing is lost by archiving."
+    },
+    {
+      "id": "TC-DK26-3173-05",
+      "title": "A dispatched assessment can be archived and its candidate data is kept",
+      "precondition_ids": ["PC-DK26-3173-01", "PC-DK26-3173-02"],
+      "preconditions": "Org administrator authenticated; a disposable dispatched assessment exists with at least one invited candidate.",
+      "steps": [
+        "Note the dispatched assessment's ID, its candidates and any results or report data.",
+        "Send the archive request for it.",
+        "Check that it has left the active list and appears in the archived list.",
+        "Request its candidate, result and report data again.",
+        "Try to open the invited candidate's assessment link and record what happens."
+      ],
+      "expected": "Archiving a dispatched assessment is allowed, matching the existing single-item behaviour. It leaves the active list and appears in the archive. Its candidates, results and report data are still returned unchanged. What happens to the invited candidate's link is recorded and checked against the agreed archived-state behaviour; if that is not defined, it is raised with the product owner."
+    },
+    {
+      "id": "TC-DK26-3173-06",
+      "title": "An archived assessment can be restored to the active list",
+      "precondition_ids": ["PC-DK26-3173-01", "PC-DK26-3173-02"],
+      "preconditions": "Org administrator authenticated; at least one archived disposable assessment from an earlier test.",
+      "steps": [
+        "Send the restore request for one archived assessment.",
+        "Read the status code and response.",
+        "Check that it appears in the default active list again and no longer appears in the archived list.",
+        "Open it by ID and compare its details with those before archiving."
+      ],
+      "expected": "The restore succeeds and the assessment returns to the active list with all its details, tests and settings unchanged. It no longer appears in the archived list, and the active total goes up by one."
+    },
+    {
+      "id": "TC-DK26-3173-07",
+      "title": "Archiving an already-archived, missing or malformed assessment ID fails cleanly",
+      "precondition_ids": ["PC-DK26-3173-01", "PC-DK26-3173-02"],
+      "preconditions": "Org administrator authenticated; one archived disposable assessment ID is known.",
+      "steps": [
+        "Send the archive request again for an assessment that is already archived.",
+        "Send the archive request for a well-formed ID that does not exist.",
+        "Send the archive request for a malformed ID (for example 'abc' or an empty value).",
+        "Read the status code and message for each, and check that no assessment changed."
+      ],
+      "expected": "Re-archiving an archived assessment either succeeds without changing anything or is refused with a clear 'already archived' message, never a 500. A missing ID returns 404 and a malformed ID returns 400, each with a clear message. No other assessment is affected."
+    },
+    {
+      "id": "TC-DK26-3173-08",
+      "title": "A selection with one failing item archives the rest and reports the failure",
+      "precondition_ids": ["PC-DK26-3173-01", "PC-DK26-3173-02"],
+      "preconditions": "Org administrator authenticated; at least 4 disposable non-dispatched assessments available.",
+      "steps": [
+        "Prepare a selection of 4 valid disposable assessment IDs plus 1 ID that does not exist.",
+        "Send the 5 archive requests at the same time.",
+        "Check each response's status code and message.",
+        "Check the state of each of the 4 valid assessments."
+      ],
+      "expected": "The 4 valid assessments are archived and the missing one is refused with a clear error, so the web app can report the correct count (4 archived, 1 failed). One failure does not stop or undo the others. Because there is no bulk endpoint, there is no rollback; this is recorded as known behaviour, as it was for questions in DK26-3171."
+    },
+    {
+      "id": "TC-DK26-3173-09",
+      "title": "Archiving and restoring without authentication are rejected",
+      "precondition_ids": ["PC-DK26-3173-01", "PC-DK26-3173-02"],
+      "preconditions": "The archive and restore requests are known; disposable active and archived assessment IDs are recorded.",
+      "steps": [
+        "Send the archive request for an active disposable assessment with no access token.",
+        "Send it again with an invalid or expired token.",
+        "Send the restore request for an archived assessment with no access token.",
+        "Check the state of both assessments as the org administrator."
+      ],
+      "expected": "Each request is rejected with 401 Unauthorized and no assessment data in the response. The active assessment stays active and the archived one stays archived."
+    },
+    {
+      "id": "TC-DK26-3173-10",
+      "title": "Archiving is refused without the archive permission or when archiving is switched off",
+      "precondition_ids": ["PC-DK26-3173-01", "PC-DK26-3173-02", "PC-DK26-3173-03"],
+      "preconditions": "User B (no archive permission) is authenticated; the org administrator is authenticated; the archiving setting can be switched off and on.",
+      "steps": [
+        "As User B, send the archive request for an active disposable assessment.",
+        "As User B, send the restore request for an archived assessment.",
+        "Switch the organisation's archiving setting (archivingEnabled) off. As the org administrator, send the archive request for an active disposable assessment.",
+        "Switch archiving back on and check the state of every assessment used."
+      ],
+      "expected": "User B's requests are refused with 403 Forbidden and a clear message, and nothing changes. With archiving switched off, the administrator's archive request is also refused, so the backend enforces both gates and not only the hidden UI button. After switching archiving back on, every assessment is in the state it was in before the test."
+    },
+    {
+      "id": "TC-DK26-3173-11",
+      "title": "An administrator cannot archive or restore another organisation's assessment",
+      "precondition_ids": ["PC-DK26-3173-01", "PC-DK26-3173-03"],
+      "preconditions": "Org administrator of organisation A authenticated; the ID of an assessment in organisation B is recorded; organisation B's administrator is available to check it.",
+      "steps": [
+        "As organisation A's administrator, send the archive request for organisation B's assessment ID.",
+        "Send the restore request for it too.",
+        "Request organisation A's archived list and check for the other organisation's assessment.",
+        "As organisation B's administrator, check the state of that assessment."
+      ],
+      "expected": "Both requests are refused with 403 or 404, and the response reveals nothing about organisation B's assessment. Organisation B's assessment is unchanged and never appears in organisation A's lists."
+    },
+    {
+      "id": "TC-DK26-3173-12",
+      "title": "An unrecognised archive filter is not silently treated as the active list",
+      "precondition_ids": ["PC-DK26-3173-01", "PC-DK26-3173-02"],
+      "preconditions": "Org administrator authenticated; at least one archived assessment exists; the correct archived-state filter is known.",
+      "steps": [
+        "Request the assessment list with the correct archived-state filter and note the result.",
+        "Request it again with two plausible but incorrect filter values or parameter names (for example a misspelled parameter or the value 'archive' instead of the expected one).",
+        "Compare what each request returns."
+      ],
+      "expected": "The correct filter returns archived assessments. An incorrect filter is either refused with 400 and a clear message, or still returns archived assessments. It must not quietly return the active list as though the filter had been understood, the issue found for questions in DK26-3171."
+    },
+    {
+      "id": "TC-DK26-3173-13",
+      "title": "Archived assessments cannot be dispatched or picked elsewhere in the platform",
+      "precondition_ids": ["PC-DK26-3173-01", "PC-DK26-3173-02"],
+      "preconditions": "Org administrator authenticated; at least one archived non-dispatched disposable assessment exists.",
+      "steps": [
+        "Send the dispatch request for an archived assessment.",
+        "Request the assessment list used by skill creation, Step 2: Assessment Assignment, and search for the archived assessment.",
+        "Request any other list that offers assessments for selection, such as reports filters, and search for it.",
+        "Restore the assessment and repeat the skill list check."
+      ],
+      "expected": "Dispatching an archived assessment is refused with a clear message. The archived assessment does not appear in the skill creation list or other selection lists. After it is restored, it appears in them again."
+    },
+    {
+      "id": "TC-DK26-3173-14",
+      "title": "Archiving a full page of assessments completes in a reasonable time",
+      "precondition_ids": ["PC-DK26-3173-01", "PC-DK26-3173-02"],
+      "preconditions": "Org administrator authenticated; at least 25 disposable non-dispatched assessments available (one page).",
+      "steps": [
+        "Take 25 disposable assessment IDs, a full page at the default page size.",
+        "Send the 25 archive requests at the same time and time the whole batch from the first request to the last response.",
+        "Check that all 25 succeed and are archived.",
+        "Record the total time, the slowest single request and any throttling (429) or error responses."
+      ],
+      "expected": "All 25 assessments are archived with no 429, 500 or timeout responses, and the batch finishes within a few seconds. The timing is recorded on the ticket so the team can decide whether a batch endpoint is needed, as with DK26-3171. A slow result is reported, not treated as a failure of the acceptance criteria."
+    }
+  ]
+}

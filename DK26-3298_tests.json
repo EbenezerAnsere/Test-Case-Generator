@@ -1,0 +1,177 @@
+{
+  "preconditions": [
+    {
+      "id": "PC-DK26-3298-01",
+      "title": "Domain step connected to the real API on staging",
+      "definition": "1. Staging runs a build that contains DK26-3298, with the domain list served by the real API and not mock data. On 2026-10-28 Philip Odzor found the list was still mock (5 of 7 domains did not exist in the organisation, and the counts were wrong), so confirm with Ishaque Appiah that the real API is connected before running these tests.\n2. The 'Create Assessment from File' feature flag is on.\n3. The tester is signed in as an organisation administrator who can create assessments, domains and tests.\n4. The screen tests in test set DK26-3529 (Philip Odzor, DK26-3519 to DK26-3528) cover the step's basic behaviour. These tests add to them."
+    },
+    {
+      "id": "PC-DK26-3298-02",
+      "title": "Known domains and a matching workbook are prepared",
+      "definition": "1. The organisation has many domains (staging had 3,006 on 2026-10-28), so search and scrolling can be checked at real scale.\n2. At least 3 domains have been noted from the Domains tab with their exact names and category counts, including one with 0 categories and one with several.\n3. One domain has a category whose name matches a sheet category in the prepared workbook (for example a domain 'JavaScript' with a category 'Core Syntax').\n4. A valid .xlsx workbook following the master template is ready to upload, and the name of an existing domain is noted for duplicate-name checks."
+    },
+    {
+      "id": "PC-DK26-3298-03",
+      "title": "Users and sessions for permission and race checks",
+      "definition": "1. User C can create assessments and tests but their role does not include the permission to create domains.\n2. A second organisation administrator session (another browser or private window) is available to create a domain while the first user is in the wizard.\n3. An organisation with no domains (for example a fresh QA organisation) is available, or this case is noted as not testable."
+    }
+  ],
+  "tests": [
+    {
+      "id": "TC-DK26-3298-01",
+      "title": "The domain list shows this organisation's real domains with correct category counts",
+      "precondition_ids": ["PC-DK26-3298-01", "PC-DK26-3298-02"],
+      "preconditions": "Real domain API connected on staging; org administrator signed in; the names and category counts of at least 3 domains noted from the Domains tab.",
+      "steps": [
+        "Go to Assessments > Create New Assessment > Create from file and upload the prepared workbook.",
+        "On the domain panel, find each of the noted domains in the existing-domain list, using search if needed.",
+        "Compare each row's name and 'N categories' with the Domains tab, including the domain with 0 categories.",
+        "Open developer tools on the Network tab and check that the list comes from an API request, not from a static or mock file."
+      ],
+      "expected": "The list contains this organisation's own domains only, each with exactly the name and category count shown on the Domains tab. A domain with no categories shows '0 categories'. No domain from the mock data, or from another organisation, appears. The list is loaded from the domains API."
+    },
+    {
+      "id": "TC-DK26-3298-02",
+      "title": "Search is debounced and always shows results for the final search term",
+      "precondition_ids": ["PC-DK26-3298-01", "PC-DK26-3298-02"],
+      "preconditions": "Real domain API connected; org administrator on the domain panel after a successful upload; developer tools open on the Network tab.",
+      "steps": [
+        "Type a domain name quickly, one character at a time without pausing, and watch the requests sent.",
+        "Stop typing and note when the list updates.",
+        "Type a short term, then quickly change it to a longer, more specific term.",
+        "Type a term with spaces before and after it."
+      ],
+      "expected": "Typing does not send a request for every keystroke: the search waits until the user pauses, or filters in the browser if the full list is already loaded. The list always shows the results for what is currently in the box, never results from an earlier, slower request. Leading and trailing spaces do not stop a domain from being found."
+    },
+    {
+      "id": "TC-DK26-3298-03",
+      "title": "The list stays usable with thousands of domains",
+      "precondition_ids": ["PC-DK26-3298-01", "PC-DK26-3298-02"],
+      "preconditions": "Real domain API connected; the organisation has thousands of domains (about 3,006 on staging).",
+      "steps": [
+        "Open the domain panel and time how long the existing-domain list takes to appear.",
+        "Scroll the list from top to bottom.",
+        "Find a domain near the end of the alphabet by scrolling, and another by searching.",
+        "Watch the browser for freezing, and the console for errors."
+      ],
+      "expected": "The list appears within a few seconds and scrolls smoothly inside its own scrollable area without the page freezing. Every domain can be reached, either by scrolling (with more loading as the user scrolls, if the list is paged) or by searching. No console errors appear."
+    },
+    {
+      "id": "TC-DK26-3298-04",
+      "title": "The chosen existing domain is the one used in the next step",
+      "precondition_ids": ["PC-DK26-3298-01", "PC-DK26-3298-02"],
+      "preconditions": "Real domain API connected; one domain has a category matching a sheet category in the uploaded workbook.",
+      "steps": [
+        "After uploading, choose the domain that has a matching category and click Continue.",
+        "In the Network tab, check that the preview request is sent with that domain's ID (preview?domainId=...).",
+        "On Configure Tests, check that the test with the matching category offers its existing questions.",
+        "Go Back, choose a different domain with no matching category, and continue again."
+      ],
+      "expected": "The preview request uses the ID of the domain that was chosen. Configure Tests reflects that domain: the matching category offers to include its existing questions. After going back and choosing a different domain, a new preview is requested for it and the offer goes away. No old domain choice is carried over."
+    },
+    {
+      "id": "TC-DK26-3298-05",
+      "title": "A new domain name that already exists is flagged",
+      "precondition_ids": ["PC-DK26-3298-01", "PC-DK26-3298-02"],
+      "preconditions": "Real domain API connected; the exact name of an existing domain is noted.",
+      "steps": [
+        "Choose Create a new domain and enter the exact name of an existing domain.",
+        "Enter the same name again in different capitals and with spaces before and after it.",
+        "Read any message and check whether Continue is available.",
+        "Change the name to one that does not exist."
+      ],
+      "expected": "An existing name is flagged next to the Domain Name field, whatever its capitals or surrounding spaces, using the nameTaken result from the preview. The user is told to choose an existing domain or pick another name, and cannot continue with the duplicate. A new, unused name clears the message."
+    },
+    {
+      "id": "TC-DK26-3298-06",
+      "title": "New domain name and description handle length limits and special characters",
+      "precondition_ids": ["PC-DK26-3298-01"],
+      "preconditions": "Real domain API connected; org administrator on the domain panel after a successful upload.",
+      "steps": [
+        "Choose Create a new domain and type a very long name (for example 300 characters).",
+        "Enter a name with special characters, such as 'C# & .NET \"Core\"', and with leading and trailing spaces.",
+        "Enter a very long description.",
+        "Continue and complete the wizard with the special-character name, then open the new domain on the Domains tab."
+      ],
+      "expected": "The name and description cannot exceed their maximum length: either typing stops at the limit or a message gives the limit, matching manual domain creation. Special characters are accepted and saved exactly as entered, with surrounding spaces trimmed. Nothing is cut off silently or shown as escaped characters."
+    },
+    {
+      "id": "TC-DK26-3298-07",
+      "title": "A new domain is created only when the assessment is created",
+      "precondition_ids": ["PC-DK26-3298-01", "PC-DK26-3298-02"],
+      "preconditions": "Real domain API connected; org administrator signed in; a unique new domain name chosen, such as 'QA-3298-<date>'.",
+      "steps": [
+        "Choose Create a new domain, enter the unique name and a description, and click Continue.",
+        "In another tab, search the Domains tab for that name.",
+        "Go Back, change the name, and continue again. Then leave the wizard and confirm leaving.",
+        "Start again with the unique name and complete the wizard through Create Assessment.",
+        "Search the Domains tab for both names."
+      ],
+      "expected": "No domain is created by Continue, by going Back or by leaving the wizard: the Domains tab does not show either name before Create. After Create Assessment, exactly one domain exists, with the final name and description, holding the new tests and questions. The earlier name was never created."
+    },
+    {
+      "id": "TC-DK26-3298-08",
+      "title": "The new-domain name and description are kept when coming Back",
+      "precondition_ids": ["PC-DK26-3298-01"],
+      "preconditions": "Real domain API connected; org administrator on the domain panel after a successful upload.",
+      "steps": [
+        "Choose Create a new domain, enter a name and description, and click Continue.",
+        "Click Back to return to Upload & Check.",
+        "Check which option is selected and what the fields contain.",
+        "Switch to Add to an existing domain, then back to Create a new domain, and check the fields again."
+      ],
+      "expected": "Coming Back shows Create a new domain still selected, with the same name and description, and Continue still available. Switching options and back either keeps the typed values or clears them consistently. The choice sent on Create is always the option currently selected."
+    },
+    {
+      "id": "TC-DK26-3298-09",
+      "title": "A user who cannot create domains is not offered a new domain",
+      "precondition_ids": ["PC-DK26-3298-01", "PC-DK26-3298-03"],
+      "preconditions": "Real domain API connected; User C (can create assessments but not domains) signed in.",
+      "steps": [
+        "As User C, open Create from file and upload the workbook.",
+        "Look at the Create a new domain option.",
+        "Choose an existing domain and continue through the wizard.",
+        "If the new-domain option can still be used, enter a new name and try to finish the wizard."
+      ],
+      "expected": "For User C, Create a new domain is hidden, or disabled with a short explanation, following permissions in the check response. Adding to an existing domain still works. If a new domain is attempted anyway, Create is refused with a clear permission message, and no domain or assessment is created."
+    },
+    {
+      "id": "TC-DK26-3298-10",
+      "title": "A domain name taken by someone else after it was entered is caught at Create",
+      "precondition_ids": ["PC-DK26-3298-01", "PC-DK26-3298-03"],
+      "preconditions": "Real domain API connected; two org administrator sessions available.",
+      "steps": [
+        "In session 1, choose Create a new domain with a unique name and continue to Review & Create.",
+        "In session 2, create a domain with that same name on the Domains tab.",
+        "In session 1, click Create Assessment.",
+        "Read the message, check which step is highlighted, then change the name or choose the existing domain and create again."
+      ],
+      "expected": "Create is refused with a message that the domain name is now taken, and the Upload & Check step (the domain field) is highlighted so the user can go straight to it. All other entered data is kept. After choosing another name or the existing domain, Create succeeds and no duplicate domain exists."
+    },
+    {
+      "id": "TC-DK26-3298-11",
+      "title": "An organisation with no domains can still create one",
+      "precondition_ids": ["PC-DK26-3298-01", "PC-DK26-3298-03"],
+      "preconditions": "Real domain API connected; an administrator of an organisation with no domains signed in.",
+      "steps": [
+        "Open Create from file and upload the workbook.",
+        "Look at the Add to an existing domain option and its list.",
+        "Choose Create a new domain, enter a name and continue."
+      ],
+      "expected": "The existing-domain list shows a clear empty state that suggests creating a new domain, not a blank area or an endless loading indicator. Creating a new domain works and the user can continue."
+    },
+    {
+      "id": "TC-DK26-3298-12",
+      "title": "The domain panel is usable by keyboard, at different widths and in dark mode",
+      "precondition_ids": ["PC-DK26-3298-01"],
+      "preconditions": "Real domain API connected; org administrator on the domain panel after a successful upload.",
+      "steps": [
+        "Using only the keyboard, switch between the two radio cards, search, move through the domain list, select a domain and reach Continue.",
+        "Check that focus is visible and that each list row is announced with its name and category count.",
+        "View the panel at 1440 px, about 1024 px and about 768 px wide.",
+        "Turn on dark mode and check the cards, list, selected row, required marker and error message."
+      ],
+      "expected": "Every action can be done by keyboard with a visible focus outline, and the radio cards behave as a radio group. Rows are announced with their name and category count. At every width, the cards, search box and list fit without overlapping or cutting off text. In dark mode the selected row, required marker and error message are clearly visible."
+    }
+  ]
+}

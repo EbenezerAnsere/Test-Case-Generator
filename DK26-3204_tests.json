@@ -1,0 +1,169 @@
+{
+  "preconditions": [
+    {
+      "id": "PC-DK26-3204-01",
+      "title": "Org administrator logged in on staging with the DK26-3204 fix deployed",
+      "definition": "1. Staging (amap-staging.amalitech-dev.net) runs a build that contains the DK26-3204 fix (branch feature/DK26-3203-absolute-dates-previews-and-selection-cards, commit cd0deb3a2).\n2. The tester is logged in as an organisation administrator who can create tests and assessments.\n3. The browser cache has been cleared after the deployment, or a hard refresh has been done."
+    },
+    {
+      "id": "PC-DK26-3204-02",
+      "title": "Question bank holds questions with known created dates",
+      "definition": "1. The organisation has at least 10 active questions across several types (Multiple Choice, Essay, Code, Fill In The Blanks, Matrix) and difficulty levels.\n2. The created date and time of at least 3 questions has been noted from the Questions list cards.\n3. At least one question has a long question text that wraps or is cut off on the card.\n4. If possible, one question was created on day 1-9 of a month and one at an hour of 12 (noon or midnight)."
+    },
+    {
+      "id": "PC-DK26-3204-03",
+      "title": "Test library holds active tests with known created dates",
+      "definition": "1. The organisation has more than 25 active tests, so Test Assignment shows more than one page.\n2. The created date and time of at least 3 tests has been noted from the Tests list cards.\n3. At least one test has a long title and a long domain name."
+    }
+  ],
+  "tests": [
+    {
+      "id": "TC-DK26-3204-01",
+      "title": "Question selection cards show the question's created date",
+      "precondition_ids": ["PC-DK26-3204-01", "PC-DK26-3204-02"],
+      "preconditions": "Org administrator logged in on staging with the fix deployed; the question bank holds questions with known created dates.",
+      "steps": [
+        "Go to Test Management > Tests and start creating a regular test.",
+        "Fill in the test details and continue to the Question Selection step (/dashboard/test-management/tests/create-test/regular/questions-assignment).",
+        "Look at the metadata line of each question card on the first page.",
+        "Scroll through the list and check the cards further down."
+      ],
+      "expected": "Every question card shows a created date in its metadata line, after the score, for example 'Score: 10 • 06 May 2025, 12:00 PM'. The question text, domain, difficulty, score and type badge are still shown."
+    },
+    {
+      "id": "TC-DK26-3204-02",
+      "title": "Test selection cards show the test's created date",
+      "precondition_ids": ["PC-DK26-3204-01", "PC-DK26-3204-03"],
+      "preconditions": "Org administrator logged in on staging with the fix deployed; the test library holds active tests with known created dates.",
+      "steps": [
+        "Go to Test Management > Assessments and start creating an assessment.",
+        "Fill in the assessment details and continue to the Test Assignment step (/dashboard/test-management/assessments/create-assessments/Assign-Test-To-Assessment).",
+        "Look at the metadata line of each test card on the first page.",
+        "Scroll through the list and check the cards further down."
+      ],
+      "expected": "Every test card shows a created date after the question count, for example '15 Questions • 01 Jul 2026, 4:22 PM'. The title, status badge, domain, duration and question count are still shown."
+    },
+    {
+      "id": "TC-DK26-3204-03",
+      "title": "Question selection date matches the Questions list card for the same question",
+      "precondition_ids": ["PC-DK26-3204-01", "PC-DK26-3204-02"],
+      "preconditions": "Org administrator logged in on staging with the fix deployed; the created dates of at least 3 questions have been noted from the Questions list cards.",
+      "steps": [
+        "Open Test Management > Questions and write down the date shown on the cards of 3 chosen questions.",
+        "Start creating a regular test and go to the Question Selection step.",
+        "Find the same 3 questions, using search or scrolling.",
+        "Compare the date on each selection card with the date written down from the list card."
+      ],
+      "expected": "For each question, the selection card shows exactly the same date and time as its Questions list card, character for character, in the format DD MMM YYYY, H:MM AM/PM (for example 16 Oct 2026, 7:57 AM). No relative label such as '3 days ago' appears."
+    },
+    {
+      "id": "TC-DK26-3204-04",
+      "title": "Test selection date matches the Tests list card for the same test",
+      "precondition_ids": ["PC-DK26-3204-01", "PC-DK26-3204-03"],
+      "preconditions": "Org administrator logged in on staging with the fix deployed; the created dates of at least 3 tests have been noted from the Tests list cards.",
+      "steps": [
+        "Open Test Management > Tests and write down the date shown on the cards of 3 chosen tests.",
+        "Start creating an assessment and go to the Test Assignment step.",
+        "Find the same 3 tests using the Search test field.",
+        "Compare the date on each selection card with the date written down from the list card."
+      ],
+      "expected": "For each test, the selection card shows exactly the same date and time as its Tests list card, in the format DD MMM YYYY, H:MM AM/PM. No relative label such as '3 days ago' appears."
+    },
+    {
+      "id": "TC-DK26-3204-05",
+      "title": "Created date follows the DD MMM YYYY, H:MM AM/PM rules on both screens",
+      "precondition_ids": ["PC-DK26-3204-01", "PC-DK26-3204-02", "PC-DK26-3204-03"],
+      "preconditions": "Org administrator logged in on staging with the fix deployed; questions and tests exist with varied created dates, ideally including a day from 1-9 and an hour of 12.",
+      "steps": [
+        "Go to the Question Selection step of test creation and check the dates on several cards.",
+        "Go to the Test Assignment step of assessment creation and check the dates on several cards.",
+        "For each date, check the day, month, year, hour, minutes and AM/PM parts.",
+        "Look in particular for a date with a day from 1 to 9 and a time at the 12 o'clock hour."
+      ],
+      "expected": "Every date has a two-digit day (06, not 6), a three-letter English month (May, Oct), a four-digit year, a comma, an hour from 1 to 12 with no leading zero, two-digit minutes and AM or PM. Noon shows as 12:xx PM and midnight as 12:xx AM, never 0:xx. Both screens use the same format."
+    },
+    {
+      "id": "TC-DK26-3204-06",
+      "title": "Created date shows the correct moment in the viewer's local timezone",
+      "precondition_ids": ["PC-DK26-3204-01", "PC-DK26-3204-02", "PC-DK26-3204-03"],
+      "preconditions": "Org administrator logged in on staging with the fix deployed; browser developer tools available to read the API response and override the timezone.",
+      "steps": [
+        "Open the Question Selection step with developer tools open on the Network tab.",
+        "In the questions API response, find the created timestamp of one question and convert it to the local timezone.",
+        "Compare it with the date on that question's selection card.",
+        "Repeat steps 1-3 for one test on the Test Assignment step.",
+        "In developer tools, change the timezone (Sensors > Location, for example America/New_York), reload both screens and check the same two cards again."
+      ],
+      "expected": "The date on each card matches the API timestamp converted to the viewer's local time. After the timezone change, the cards show the same moment in New York time, still as an absolute date in the same format. The values match the Questions and Tests list cards under the same timezone."
+    },
+    {
+      "id": "TC-DK26-3204-07",
+      "title": "Created date does not crowd out question selection card content",
+      "precondition_ids": ["PC-DK26-3204-01", "PC-DK26-3204-02"],
+      "preconditions": "Org administrator logged in on staging with the fix deployed; at least one question has long question text.",
+      "steps": [
+        "Open the Question Selection step at a desktop width of 1440 px or more.",
+        "Check a card with long question text and a card with short question text.",
+        "Resize the browser to about 1024 px and then to a narrow width of about 768 px, and check the same cards again.",
+        "Turn on dark mode with the moon icon and check the cards again."
+      ],
+      "expected": "At every width, the domain, difficulty, score, type badge and created date are all readable. Nothing overlaps, is clipped or is pushed off the card, and the checkbox stays lined up with its card. If the line wraps, the date moves down as a whole and is not split mid-value. The date is legible in both light and dark mode."
+    },
+    {
+      "id": "TC-DK26-3204-08",
+      "title": "Created date does not crowd out test selection card content",
+      "precondition_ids": ["PC-DK26-3204-01", "PC-DK26-3204-03"],
+      "preconditions": "Org administrator logged in on staging with the fix deployed; at least one test has a long title and long domain name.",
+      "steps": [
+        "Open the Test Assignment step at a desktop width of 1440 px or more.",
+        "Check the card of a test with a long title and domain, and a card with short values.",
+        "Resize the browser to about 1024 px and then to a narrow width of about 768 px, and check the same cards again.",
+        "Turn on dark mode with the moon icon and check the cards again."
+      ],
+      "expected": "At every width, the title, status badge, domain, duration, question count and created date are all readable. The date does not overlap the Active status badge and does not push the duration or question count off the card. The date is legible in both light and dark mode."
+    },
+    {
+      "id": "TC-DK26-3204-09",
+      "title": "Card shows no date or broken text when the API returns no created date",
+      "precondition_ids": ["PC-DK26-3204-01"],
+      "preconditions": "Org administrator logged in on staging with the fix deployed; browser developer tools with response override (Network > Override content) available.",
+      "steps": [
+        "In developer tools, override the questions API response for Question Selection so one question has its created date set to null and another has the field removed.",
+        "Reload the Question Selection step and look at those two cards.",
+        "Do the same for one test in the tests API response used by Test Assignment, then reload and look at that card.",
+        "Remove the overrides and reload."
+      ],
+      "expected": "Cards with no created date show their other information as normal, with no date and no stray bullet separator. No text such as 'Invalid Date', 'NaN', 'null', 'undefined' or '01 Jan 1970' appears, and there are no console errors. Other cards still show their dates. After the overrides are removed, every card shows its date again."
+    },
+    {
+      "id": "TC-DK26-3204-10",
+      "title": "Question selection still works with the created date shown",
+      "precondition_ids": ["PC-DK26-3204-01", "PC-DK26-3204-02"],
+      "preconditions": "Org administrator logged in on staging with the fix deployed; the question bank holds at least 10 active questions.",
+      "steps": [
+        "Start creating a regular test and go to the Question Selection step.",
+        "Select 3 questions by clicking their checkboxes, then clear one.",
+        "Use search or filters to narrow the list, then clear them, and check that the selections are kept.",
+        "Check that cards brought up by search, filtering or a new page also show the created date.",
+        "Continue to the next step and finish creating the test.",
+        "Open the new test and check its questions."
+      ],
+      "expected": "Selecting and clearing questions works as it did before the fix, the selected count is correct and selections survive search and filtering. Every card shows the created date, including cards loaded later. The saved test contains exactly the 2 questions left selected."
+    },
+    {
+      "id": "TC-DK26-3204-11",
+      "title": "Test assignment still works with the created date shown",
+      "precondition_ids": ["PC-DK26-3204-01", "PC-DK26-3204-03"],
+      "preconditions": "Org administrator logged in on staging with the fix deployed; more than 25 active tests exist, so the list has more than one page.",
+      "steps": [
+        "Start creating an assessment and go to the Test Assignment step.",
+        "Select 2 tests by clicking their checkboxes.",
+        "Use 'Select all 25 tests on this page', then clear it.",
+        "Use Search test and Filter By, then go to the next page, and check that every card shown still has a created date.",
+        "Select 2 tests, continue and finish creating the assessment.",
+        "Open the new assessment and check its tests."
+      ],
+      "expected": "Single selection, 'Select all on this page', search, filter and paging work as they did before the fix. Every card shown, including on the second page and in search results, has a created date. The saved assessment contains exactly the 2 tests selected."
+    }
+  ]
+}

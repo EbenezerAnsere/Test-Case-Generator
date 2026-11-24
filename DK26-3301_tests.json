@@ -1,0 +1,153 @@
+{
+  "preconditions": [
+    {
+      "id": "PC-DK26-3301-01",
+      "title": "Reference data for Review & Create settings and summary checks",
+      "definition": "1. fred.pekyi's preconditions also apply: DK26-3598 (Organisation Admin can reach Review & Create, and the manual flow is deployed) and DK26-3599 (a valid two-sheet workbook with pools of 4 and 3).\n2. A domain exists with a category whose name matches a category in the workbook, so existing questions can be included on Configure Tests. Its number of existing questions in that category is noted.\n3. The organisation's defaults on Settings > Proctoring Settings are noted (enabled features, intervals, severity band), so defaults can be compared.\n4. A reference assessment has been created through the manual flow, with known settings, to compare against.\n5. Create Assessment works on staging (DK26-3302 is Done), so created assessments can be opened and checked."
+    }
+  ],
+  "tests": [
+    {
+      "id": "TC-DK26-3301-01",
+      "title": "Pass mark accepts whole numbers from 1 to 100 only, as in manual creation",
+      "precondition_ids": ["PC-DK26-3301-01"],
+      "preconditions": "Organisation Admin on Review & Create after uploading a valid workbook (DK26-3598, DK26-3599).",
+      "steps": [
+        "Enter each of these pass marks in turn and read the result: 0, 1, 100, -5, 50.5, 'abc', and ' 70 ' with spaces.",
+        "Check whether Create Assessment is available after each value.",
+        "Enter the same values in the manual Create New Assessment flow and compare."
+      ],
+      "expected": "Only whole numbers from 1 to 100 are accepted. 1 and 100 are valid, while 0, negative numbers, decimals and letters are refused with a clear message (the contract's message is 'Pass mark must be a whole number from 1 to 100'), or cannot be typed at all. Spaces are trimmed. The behaviour and messages match the manual flow."
+    },
+    {
+      "id": "TC-DK26-3301-02",
+      "title": "Assessment title rejects blanks and over-long text and keeps special characters",
+      "precondition_ids": ["PC-DK26-3301-01"],
+      "preconditions": "Organisation Admin on Review & Create after uploading a valid workbook.",
+      "steps": [
+        "Enter a title made only of spaces and try to continue to Create.",
+        "Enter a title longer than the manual flow's limit (for example 300 characters).",
+        "Enter a title with special characters, such as 'C# & .NET \"Basics\" – Level 2', and create the assessment.",
+        "Open the created assessment and compare its title."
+      ],
+      "expected": "A title of only spaces is treated as empty and shows the required message. The maximum length is enforced as in the manual flow, either by stopping typing or with a message. Special characters are saved and shown exactly as typed, with surrounding spaces trimmed."
+    },
+    {
+      "id": "TC-DK26-3301-03",
+      "title": "Assessment instructions keep their formatting, and empty or unsafe content is handled",
+      "precondition_ids": ["PC-DK26-3301-01"],
+      "preconditions": "Organisation Admin on Review & Create after uploading a valid workbook.",
+      "steps": [
+        "In the instructions editor, add only empty lines (press Enter a few times) and try to create.",
+        "Write instructions with bold, italic, a bulleted list, a numbered list and a link.",
+        "Paste in text containing '<script>alert(1)</script>' and an image tag with an onerror handler.",
+        "Create the assessment, then open its preview and the candidate's instructions page."
+      ],
+      "expected": "Instructions with only empty lines count as empty and show the required message, as in the manual flow. Bold, italic, lists and links are saved and shown as formatted on the preview and the candidate page. Script and event-handler content is not run anywhere: it is removed or shown as plain text. The editor is the same one used in manual creation."
+    },
+    {
+      "id": "TC-DK26-3301-04",
+      "title": "Tags can be added and removed as in manual creation",
+      "precondition_ids": ["PC-DK26-3301-01"],
+      "preconditions": "Organisation Admin on Review & Create after uploading a valid workbook; at least one tag already exists in the organisation.",
+      "steps": [
+        "Add a new tag, an existing tag (check whether it is suggested), and the same tag twice.",
+        "Add a tag in different capitals from an existing one, and one with spaces around it.",
+        "Remove one tag.",
+        "Create the assessment and check its tags on the preview and in the Assessments list filter."
+      ],
+      "expected": "Tags behave as in manual creation: existing tags are suggested, duplicates are not added twice, spaces are trimmed, and removed tags are not saved. The created assessment carries exactly the tags shown at Create, and can be found by those tags."
+    },
+    {
+      "id": "TC-DK26-3301-05",
+      "title": "The created assessment carries exactly the settings chosen on Review & Create",
+      "precondition_ids": ["PC-DK26-3301-01"],
+      "preconditions": "Organisation Admin on Review & Create; Create Assessment works on staging; a manually created reference assessment is available.",
+      "steps": [
+        "On Review & Create, turn on Honour Code, ID Capture, Candidate Capture (choose an interval), Screen Capture (choose an interval), Track Idle Time, Track Window Violation, Copy & paste detection and Suspicious typing. Choose a severity band, turn on the survey and set a retake delay.",
+        "Create the assessment.",
+        "Open the created assessment's preview and its edit settings.",
+        "Compare each setting with what was chosen, and with the reference assessment created manually with the same choices."
+      ],
+      "expected": "Every setting chosen on Review & Create is saved on the created assessment, including the capture intervals, severity band, survey and retake delay. They are shown the same way as on the manually created reference. No setting is lost, reset to its default or changed."
+    },
+    {
+      "id": "TC-DK26-3301-06",
+      "title": "Settings defaults follow the organisation's Proctoring Settings, as in manual creation",
+      "precondition_ids": ["PC-DK26-3301-01"],
+      "preconditions": "Organisation Admin; the organisation's Proctoring Settings defaults are noted.",
+      "steps": [
+        "Open Review & Create in a fresh wizard and note the defaults of every security and other setting.",
+        "Open the manual flow and note its defaults.",
+        "Change one default on Settings > Proctoring Settings (for example the screen capture interval), start a new Create from File wizard and check the setting again.",
+        "Put the Proctoring Settings default back."
+      ],
+      "expected": "Review & Create starts with the same defaults as the manual flow, taken from the organisation's Proctoring Settings. After the organisation default is changed, a new wizard starts with the new value, just as the manual flow does."
+    },
+    {
+      "id": "TC-DK26-3301-07",
+      "title": "Dependent settings show and hide their options as in manual creation",
+      "precondition_ids": ["PC-DK26-3301-01"],
+      "preconditions": "Organisation Admin on Review & Create after uploading a valid workbook.",
+      "steps": [
+        "Turn Candidate Capture and Screen Capture on and off and watch their interval options.",
+        "Turn Suspicious typing on and off and watch the proctoring severity options.",
+        "Turn the retake option on and set the delay to its minimum, below the minimum, and empty.",
+        "Do the same in the manual flow and compare."
+      ],
+      "expected": "Turning a setting on shows its options, and turning it off hides them so they are not saved. Required sub-options are validated with the same messages and limits as the manual flow. Nothing appears on one flow that is missing on the other."
+    },
+    {
+      "id": "TC-DK26-3301-08",
+      "title": "Summary counts only new questions as added to the bank and totals only included tests",
+      "precondition_ids": ["PC-DK26-3301-01"],
+      "preconditions": "Organisation Admin; a domain has a category matching a workbook category, with a known number of existing questions.",
+      "steps": [
+        "Upload the workbook, choose the domain with the matching category and continue.",
+        "On Configure Tests, include existing questions for the matching test and exclude one other test. Note each test's pool, questions to be assigned and time.",
+        "Continue to Review & Create and read every line of the Summary.",
+        "Calculate the expected values by hand and compare."
+      ],
+      "expected": "Domain shows the chosen domain's name. Tests counts only the included tests. Questions per candidate is the sum of 'questions to be assigned' over included tests. Duration is the sum of their times, in a readable format such as '1 hr 15 mins'. 'Added to the bank' counts only the new questions from the file, not the existing ones included from the domain, and not the excluded test's questions. Pass mark matches Basic Information."
+    },
+    {
+      "id": "TC-DK26-3301-09",
+      "title": "Summary shows a new domain's name, and follows a domain change made on an earlier step",
+      "precondition_ids": ["PC-DK26-3301-01"],
+      "preconditions": "Organisation Admin; a valid workbook.",
+      "steps": [
+        "Upload the workbook, choose Create a new domain with a unique name, and continue to Review & Create.",
+        "Read the Summary's Domain line.",
+        "Go Back to Upload & Check, switch to an existing domain, and continue to Review & Create again.",
+        "Read the Summary, and check that the Basic Information and settings entered before are kept."
+      ],
+      "expected": "The Summary shows the new domain's name (marked as new, if the design does so). After switching to an existing domain on the earlier step, the Summary shows that domain, and any counts that depend on it are updated. The title, instructions, pass mark, tags and settings already entered on Review & Create are kept."
+    },
+    {
+      "id": "TC-DK26-3301-10",
+      "title": "Review Tests link returns to Configure Tests, and the sticky summary stays visible",
+      "precondition_ids": ["PC-DK26-3301-01"],
+      "preconditions": "Organisation Admin on Review & Create after uploading a valid workbook.",
+      "steps": [
+        "Scroll down through the long security settings section and watch the Summary sidebar.",
+        "Click 'Review Tests' in the Summary.",
+        "On Configure Tests, change one test's time and continue.",
+        "Check the Summary and the stepper."
+      ],
+      "expected": "The Summary sidebar stays in view while scrolling, without covering the form. 'Review Tests' opens Configure Tests with its values intact, and the stepper highlights that step. After continuing, the Summary's duration reflects the change, and the Review & Create values are unchanged."
+    },
+    {
+      "id": "TC-DK26-3301-11",
+      "title": "Review & Create is usable by keyboard, at different widths and in dark mode",
+      "precondition_ids": ["PC-DK26-3301-01"],
+      "preconditions": "Organisation Admin on Review & Create after uploading a valid workbook.",
+      "steps": [
+        "Using only the keyboard, fill in every Basic Information field, including the rich text editor and tags, toggle settings, and reach Back and Create Assessment.",
+        "Check that required fields and error messages are announced by a screen reader.",
+        "View the step at 1440 px, about 1024 px and about 768 px wide, and check where the Summary sidebar goes.",
+        "Turn on dark mode and check the form, the settings toggles, the rich text editor and the Summary."
+      ],
+      "expected": "Every field and setting can be used by keyboard with a visible focus outline. Required markers and errors are announced. At narrower widths the Summary moves below or above the form, or stays readable, without overlapping fields. In dark mode all text, toggles, the editor content and the Summary are readable."
+    }
+  ]
+}

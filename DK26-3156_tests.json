@@ -1,0 +1,307 @@
+{
+  "preconditions": [
+    {
+      "id": "PC-DK26-3156-01",
+      "title": "Training Center Analytics dashboard reachable on production data, with accounts per role",
+      "definition": "1. The dashboard URL is known (ask Daniel Forson), and it runs on the production gold layer through Athena. The sidebar does not show the 'Mock data' badge.\n2. Accounts are available for at least these roles: Admin (all organisations, real names, export), Org admin (one organisation), and Viewer (pseudonyms, no export). Ask Daniel for them if needed.\n3. The tester has read the 'Training Center Analytics Dashboard: UI Walkthrough for UI/UX' page in Confluence, which describes every screen and rule.\n4. Latest Chrome, plus Firefox or Safari, with developer tools."
+    },
+    {
+      "id": "PC-DK26-3156-02",
+      "title": "Reference assessments and figures to compare the dashboard against",
+      "definition": "1. One assessment with many sittings is chosen. Its candidates, sittings, pass rate and completion figures are noted from the Dodokpo platform (assessment report and candidate list) or from an Athena query on the gold views (with Daniel's help), for a fixed date range.\n2. One assessment where some candidates retook the test, with the candidates and number of attempts noted.\n3. One assessment with partial-credit answers (for example multiple-answer questions).\n4. One small assessment or administration with fewer than 20 answers per question, and one group with fewer than 5 candidates, to check the 'not enough data' and 'suppressed' states.\n5. The expected figures from 'Analytics Data Discrepancies: Findings, Decisions and Fixes' (DK26-3460) are available."
+    },
+    {
+      "id": "PC-DK26-3156-03",
+      "title": "Stakeholder review status known",
+      "definition": "1. The reviews held in early November with the Training Center are documented (Confluence 'Analytics Dashboard Review' page and the DK26-3156 comment of Daniel Forson).\n2. The latest stakeholder's feedback is expected the week of 9 November 2026. Approval notes or follow-up improvements should be added to DK26-3156 once received."
+    }
+  ],
+  "tests": [
+    {
+      "id": "TC-DK26-3156-01",
+      "title": "Overview shows candidates, sittings, pass rate and completion rate with honest change arrows",
+      "precondition_ids": ["PC-DK26-3156-01"],
+      "preconditions": "Signed in as Admin on the dashboard running on production data.",
+      "steps": [
+        "Open Portfolio > Overview with no filters.",
+        "Read the four headline numbers and the smaller assessment and domain counts.",
+        "Hover each change arrow and open the (i) 'What the colours mean'.",
+        "Check the Needs attention, What changed, Pass rate by month and Sittings by month cards, and the By domain table (top 8, show all)."
+      ],
+      "expected": "The Overview shows Candidates (distinct people), Sittings, Pass rate and Completion rate, each with a change since the previous period. Count arrows are grey. Rate arrows are coloured only when the change is real and big enough, otherwise they say 'within noise' or 'too small to act on'. Pass rate and sittings by month are two separate charts with one scale each. Needs attention is never empty. By domain shows 8 rows and expands to all."
+    },
+    {
+      "id": "TC-DK26-3156-02",
+      "title": "Score distribution is shown per assessment against its pass mark",
+      "precondition_ids": ["PC-DK26-3156-01", "PC-DK26-3156-02"],
+      "preconditions": "Admin signed in; the reference assessment chosen.",
+      "steps": [
+        "Open Portfolio > Assessments and open the reference assessment.",
+        "On the Overview tab, read the Score distribution card.",
+        "Switch the card between Chart and Table.",
+        "Compare the number of sittings in the distribution with the 'In statistics' tile."
+      ],
+      "expected": "The score distribution is shown for this test, with its pass mark marked. The table view shows the same values as the chart. The total behind the distribution matches the 'In statistics' count. Score distribution is not on the Overview page, because mixing different tests is not meaningful."
+    },
+    {
+      "id": "TC-DK26-3156-03",
+      "title": "Pass and fail rate are correct for an assessment and over time",
+      "precondition_ids": ["PC-DK26-3156-01", "PC-DK26-3156-02"],
+      "preconditions": "Admin signed in; the reference assessment's pass and fail counts noted from the platform for a fixed date range.",
+      "steps": [
+        "Set the date range to the noted range and open the reference assessment.",
+        "Read its pass rate (and pass and fail counts in the table view).",
+        "On Overview, filter to the same assessment and read the Pass rate by month chart in table view.",
+        "Compare with the noted figures."
+      ],
+      "expected": "The pass rate matches the platform figures for the same range: each sitting is judged against its own test's pass mark. Pass plus fail adds up to the sittings counted. The monthly table matches the chart, and each month's rate is consistent with the overall rate."
+    },
+    {
+      "id": "TC-DK26-3156-04",
+      "title": "Completion rate and completion statuses are shown and follow the agreed source of truth",
+      "precondition_ids": ["PC-DK26-3156-01", "PC-DK26-3156-02"],
+      "preconditions": "Admin signed in; the reference assessment's completion statuses noted from test-execution data (with Daniel's help).",
+      "steps": [
+        "Open the reference assessment and read the Completion tile and the Completion status card.",
+        "Open Item quality > Timing & speededness and read Time taken next to Completion states.",
+        "Compare each status count with the noted figures.",
+        "Open Governance and find the data-quality checks for services disagreeing on status."
+      ],
+      "expected": "The completion rate and the status breakdown (completed, time expired, did not finish and so on) match the noted figures. Statuses come from test-execution first, as agreed in A1, and an 'in progress' status never overrides an end state. Governance counts sittings where the services disagree."
+    },
+    {
+      "id": "TC-DK26-3156-05",
+      "title": "Item bank shows question performance with Replace, Review, Keep and Insufficient evidence verdicts",
+      "precondition_ids": ["PC-DK26-3156-01"],
+      "preconditions": "Admin signed in.",
+      "steps": [
+        "Open Item quality > Item bank.",
+        "Note which verdicts are shown on opening, and the counts on each verdict chip.",
+        "Click each chip in turn, and switch the view between Chart and Table.",
+        "Sort the table by difficulty and by quality, and open the fold-out list of questions with incomplete statistics."
+      ],
+      "expected": "The page opens showing only Replace and Review. The chips appear in the order Replace, Review, Keep, Insufficient evidence, each with an icon and a word as well as a colour. Their counts cover the whole bank and do not change as chips are clicked. Questions with fewer than 20 answers are 'Insufficient evidence', not Keep. Sorting applies to the whole list. Questions without statistics are listed with grouped reasons."
+    },
+    {
+      "id": "TC-DK26-3156-06",
+      "title": "Question panel explains each question's verdict and counts partial answers separately",
+      "precondition_ids": ["PC-DK26-3156-01", "PC-DK26-3156-02"],
+      "preconditions": "Admin signed in; an assessment with partial-credit answers.",
+      "steps": [
+        "Open a Replace or Review question from the Item bank.",
+        "Read 'Why this verdict', the statistics and the answer options.",
+        "Open a question from the partial-credit assessment and read its counts.",
+        "Copy the page link, open it in a new tab and check that the same question panel opens."
+      ],
+      "expected": "The panel states the rule that gave the verdict in plain words, and shows difficulty, quality and the counts of correct, partial, wrong and skipped answers. Partial answers are counted as Partial, not as wrong (decision A2). The correct option is marked. The link reopens the same question."
+    },
+    {
+      "id": "TC-DK26-3156-07",
+      "title": "Distractors page shows how often each wrong option is chosen",
+      "precondition_ids": ["PC-DK26-3156-01"],
+      "preconditions": "Admin signed in.",
+      "steps": [
+        "Open Item quality > Distractors.",
+        "Read the tiles, including the threshold in use.",
+        "Click a question in 'Questions needing attention' and read each option's pick rate.",
+        "Check how questions without a title are labelled."
+      ],
+      "expected": "Tiles show questions analysed, total distractors, non-working ones, questions with no working distractor, possible wrong answer keys and the threshold ('at least 5% of people pick it'). Each option shows how often it was picked, and the pick rates of a question add up to 100%. Questions without a title are shown by their text."
+    },
+    {
+      "id": "TC-DK26-3156-08",
+      "title": "Candidate roster compares candidates by mean score, best score, pass rate and attempts",
+      "precondition_ids": ["PC-DK26-3156-01"],
+      "preconditions": "Admin signed in; the roster has more than one page of candidates.",
+      "steps": [
+        "Open Portfolio > Candidates.",
+        "Sort by mean score, then best score, then pass rate, then attempts, in both directions.",
+        "Go to page 2 after each sort and check the order continues.",
+        "Check what the note says about sittings and candidates."
+      ],
+      "expected": "There is one row per person. Each column sorts the whole roster, not only the visible page, so page 2 continues the order of page 1. Values are consistent: the best score is never below the mean score, and attempts count all sittings of that person."
+    },
+    {
+      "id": "TC-DK26-3156-09",
+      "title": "Candidate profile shows retake progression, all sittings and each sitting's answers",
+      "precondition_ids": ["PC-DK26-3156-01", "PC-DK26-3156-02"],
+      "preconditions": "Admin signed in; a candidate who retook an assessment, with the number and dates of attempts noted.",
+      "steps": [
+        "Open the candidate from the roster to show the person panel.",
+        "Read Retake progression and All sittings.",
+        "Open one sitting and read each question's answer, correctness and pause time.",
+        "Compare the attempts with the noted figures."
+      ],
+      "expected": "The person panel shows every sitting in date order with its score, and the retake progression matches the noted attempts. The sitting panel shows each question with the answer, Correct, Partial, Wrong or Skipped, and the pause time. A pause that was not measured is blank, not 0. The on-screen notes explain that attempt order comes from timestamps."
+    },
+    {
+      "id": "TC-DK26-3156-10",
+      "title": "Group comparison shows group performance and hides groups that are too small",
+      "precondition_ids": ["PC-DK26-3156-01", "PC-DK26-3156-02"],
+      "preconditions": "Admin signed in; a group with fewer than 5 candidates and one with 5 to 9 are known, if available.",
+      "steps": [
+        "Open Fairness > Groups & DIF, Group performance tab.",
+        "Group by candidate group, then by organisation and by month.",
+        "Find the small groups.",
+        "Open the DIF tab, pick two groups and run the comparison."
+      ],
+      "expected": "Each group shows its average, spread and pass rate. Groups under 10 are marked 'too small to compare' with how many more are needed. Groups under 5 show 'Suppressed (n < 5)' and no figures. DIF lists questions graded A, B or C, never labelled 'biased', and lists questions that could not be tested. Where data is thin the page explains why instead of showing empty boxes."
+    },
+    {
+      "id": "TC-DK26-3156-11",
+      "title": "Assessment filter narrows from domain to category, assessment and administration",
+      "precondition_ids": ["PC-DK26-3156-01"],
+      "preconditions": "Admin signed in.",
+      "steps": [
+        "Open the filter bar and choose a Domain, then a Category, an Assessment and an Administration.",
+        "Check the lists offered at each level.",
+        "Change the Domain and check the lower levels.",
+        "Search the Assessment list by part of a name, and search the Domain list for 'Backend Engineering'."
+      ],
+      "expected": "Each list only offers what exists under the level above, so no empty combination can be built. Changing a higher level clears the levels below it. Long lists (domains, assessments) can be searched. Domains with the same name appear once, and hover text explains the merge. Every figure on the page updates to the selection."
+    },
+    {
+      "id": "TC-DK26-3156-12",
+      "title": "Date range filter changes every figure and is shown in the scope line",
+      "precondition_ids": ["PC-DK26-3156-01", "PC-DK26-3156-02"],
+      "preconditions": "Admin signed in; the reference assessment's figures noted for two different date ranges.",
+      "steps": [
+        "On Overview, set a date range and note the headline numbers.",
+        "Set the second date range and note them again.",
+        "Read the scope line, then remove the date range with its ✕.",
+        "Set a range in which nothing happened."
+      ],
+      "expected": "The figures change with the date range and match the noted figures for each range. The scope line names the date range and the amount of data behind it, and ✕ removes it. A range with no data shows a sentence explaining that there is no data, not zeros or empty boxes."
+    },
+    {
+      "id": "TC-DK26-3156-13",
+      "title": "Completion status filter narrows figures to the chosen statuses",
+      "precondition_ids": ["PC-DK26-3156-01", "PC-DK26-3156-02"],
+      "preconditions": "Admin signed in; the reference assessment's status counts noted.",
+      "steps": [
+        "Open the reference assessment and set the Completion filter to completed only.",
+        "Read the sittings, score distribution and completion card.",
+        "Change the filter to a non-completed status (for example time expired).",
+        "Clear the filter."
+      ],
+      "expected": "With a completion filter, only sittings in that status are counted, and the counts match the noted figures. The scope line and collapsed filter summary name the filter. Clearing it restores the original figures."
+    },
+    {
+      "id": "TC-DK26-3156-14",
+      "title": "Candidate cohort is replaced by Group, with a warning about how little data has groups",
+      "precondition_ids": ["PC-DK26-3156-01"],
+      "preconditions": "Admin signed in.",
+      "steps": [
+        "Open the filter bar and look for a cohort filter.",
+        "Filter by a Group and read any banner.",
+        "Open 'Not available here (n)' at the bottom of the menu.",
+        "Visit a page where Group has no effect and check whether the banner is shown."
+      ],
+      "expected": "There is no cohort filter, because the source data has no cohort records (agreed with the Training Center). Group is offered instead, and filtering by group shows a banner that only a small share of records (about 3%) have a group. The banner appears only where groups affect the numbers. 'Not available here' lists cohort and country views with the reason."
+    },
+    {
+      "id": "TC-DK26-3156-15",
+      "title": "Filters carry across pages and are kept in a shareable link",
+      "precondition_ids": ["PC-DK26-3156-01"],
+      "preconditions": "Admin signed in.",
+      "steps": [
+        "Set an organisation, domain, assessment, date range and completion status.",
+        "Move between Overview, Item bank, Timing and Governance.",
+        "Collapse the filter bar and read its summary.",
+        "Copy the link and open it in a private window after signing in."
+      ],
+      "expected": "The filters stay applied on every page, and each page's scope line states them. The collapsed summary names every active filter, not just a count. Pages where Category cannot narrow the numbers say so next to the filter. The copied link opens the same page with the same filters."
+    },
+    {
+      "id": "TC-DK26-3156-16",
+      "title": "Dashboard figures match the production data for a reference assessment",
+      "precondition_ids": ["PC-DK26-3156-01", "PC-DK26-3156-02"],
+      "preconditions": "Admin signed in; the reference assessment's figures noted from the Dodokpo platform or an Athena query on the gold views, for a fixed date range.",
+      "steps": [
+        "Filter the dashboard to the reference assessment and the same date range.",
+        "Compare candidates, sittings, pass rate, completion rate and mean score with the noted figures.",
+        "Open the Assessment detail 'Comparison with the platform's own figures' card.",
+        "Note every difference and its explanation."
+      ],
+      "expected": "Candidates, sittings, pass rate and completion rate match the production figures. Any difference is explained on screen (for example attempt policy, candidates who never submitted, or status taken from test-execution), and the platform comparison card shows both values side by side."
+    },
+    {
+      "id": "TC-DK26-3156-17",
+      "title": "Data discrepancy fixes are visible on the dashboard",
+      "precondition_ids": ["PC-DK26-3156-01", "PC-DK26-3156-02"],
+      "preconditions": "Admin signed in; the expected figures from the 'Analytics Data Discrepancies' page (DK26-3460).",
+      "steps": [
+        "Filter to the review window used on that page and open Governance.",
+        "Read the checks for responses whose correctness is derived from the score, for records that fell back from test-execution, and for status disagreements.",
+        "Open a partial-credit question and check its Partial count.",
+        "Look up a candidate record known to have been deleted at the source, if one is available."
+      ],
+      "expected": "Responses whose correctness is derived from the score are 0 in the window. Partial answers are counted as Partial (217 in the window). Status disagreements are counted (about 64 candidates), and the value shown is the higher-priority one. Records deleted at the source no longer appear."
+    },
+    {
+      "id": "TC-DK26-3156-18",
+      "title": "Governance shows data-quality checks, data freshness, definitions and the draft rule set",
+      "precondition_ids": ["PC-DK26-3156-01"],
+      "preconditions": "Admin signed in.",
+      "steps": [
+        "Open Governance with no filters, then with an assessment filter.",
+        "Read the data-quality checks, data freshness dates, metric definitions and the rule set.",
+        "Hover the 'Draft thresholds' badge on Overview.",
+        "Check the sidebar for the 'Mock data' badge."
+      ],
+      "expected": "Governance lists the 17 data-quality checks as counts, which change with the filters. Data freshness shows when each source was last updated, and the dates are recent (within the weekly load). Each metric has a plain definition. The rule set shows its version, draft status and thresholds in order. No 'Mock data' badge is shown, confirming production data is used."
+    },
+    {
+      "id": "TC-DK26-3156-19",
+      "title": "No empty boxes or fake zeros, and every chart can be read as a table",
+      "precondition_ids": ["PC-DK26-3156-01", "PC-DK26-3156-02"],
+      "preconditions": "Admin signed in; a small assessment with fewer than 20 answers per question.",
+      "steps": [
+        "Open the small assessment's detail page and its Item quality tab.",
+        "Read each card, including Reliability.",
+        "On each page, use the Chart / Table switch on every chart card.",
+        "Look for blank cards, '0' values that should be 'not measured', and charts with two vertical scales."
+      ],
+      "expected": "Where there is not enough data, a short sentence explains why (for example 'Needs at least 20 answers; this question has 12'). No box is empty and no missing value is shown as 0. Every chart has a working table view with the same values, and no chart has two vertical scales."
+    },
+    {
+      "id": "TC-DK26-3156-20",
+      "title": "Each role sees only its allowed data, names and export",
+      "precondition_ids": ["PC-DK26-3156-01"],
+      "preconditions": "Accounts for Admin, Org admin and Viewer.",
+      "steps": [
+        "As Admin, check the organisation picker, candidate names and export buttons.",
+        "As Org admin, check the picker, the organisations whose data appears, and names.",
+        "As Viewer, check names, the pseudonym notice in the profile menu, and export buttons.",
+        "As Org admin, change the organisation in the page link to another organisation and reload."
+      ],
+      "expected": "Admin sees all organisations, real names and export. Org admin sees only their own organisation, with no full picker. Viewer sees consistent pseudonyms, a notice explaining them and no export buttons. Changing the link to another organisation shows no data from it, because access is decided by the server."
+    },
+    {
+      "id": "TC-DK26-3156-21",
+      "title": "The dashboard is usable in dark mode, at narrow widths and by keyboard",
+      "precondition_ids": ["PC-DK26-3156-01"],
+      "preconditions": "Admin signed in.",
+      "steps": [
+        "Switch between light and dark with the theme button, and choose 'Match the system theme'.",
+        "View Overview, Item bank and Groups & DIF at 1440 px, about 900 px and about 720 px wide.",
+        "Using only the keyboard, open filters, choose values, switch Chart / Table and open a question panel.",
+        "Time how long Overview and the Item bank take to load."
+      ],
+      "expected": "Text, chart colours and status chips are readable in both themes, and status is never shown by colour alone. Under 900 px the sidebar starts collapsed, and under 720 px layouts become one column without overlap (wide tables scroll inside their card). Everything can be reached by keyboard with visible focus. Pages load in an acceptable time; slow loading was a known issue."
+    },
+    {
+      "id": "TC-DK26-3156-22",
+      "title": "Stakeholder review is recorded with approval notes or follow-up improvements",
+      "precondition_ids": ["PC-DK26-3156-03"],
+      "preconditions": "The stakeholder reviews of early November and the pending feedback are known.",
+      "steps": [
+        "Read the DK26-3156 comments and the linked Confluence review pages.",
+        "Check that each review lists who attended, what was agreed and what changed.",
+        "Check that the latest stakeholder's feedback has been added as approval notes or follow-up items.",
+        "Check that each follow-up improvement is raised as a Jira ticket or explicitly declined."
+      ],
+      "expected": "The ticket or Confluence holds approval notes from the stakeholders, or a list of follow-up improvements with tickets. The early-November reviews are documented, and the changes made from them are visible (separate assessment and candidate views, every chart says why it is there). Until the pending feedback is recorded, this test stays open."
+    }
+  ]
+}

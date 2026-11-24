@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Read(./jira-xray-config.json)",
+      "Read(./agent-config.json)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./**/jira-xray-config.json)",
+      "Read(./**/agent-config.json)",
+      "Read(./**/.env)",
+      "Read(./**/.env.*)",
+      "Read(./**/credentials.json)",
+      "Read(~/.netrc)",
+      "Read(~/.aws/credentials)",
+      "Read(~/.ssh/**)",
+      "Edit(./jira-xray-config.json)",
+      "Edit(./agent-config.json)",
+      "Edit(./.env)",
+      "Edit(./.env.*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -I \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-credential-reads.py\"",
+            "timeout": 10,
+            "onFailure": "block",
+            "statusMessage": "Checking for credential access..."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,194 @@
+{
+  "preconditions": [
+    {
+      "id": "PC-DK26-3294-01",
+      "title": "Build with DK26-3294 deployed and the Create Assessment from File flag available",
+      "definition": "1. The environment under test (staging, amap-staging.amalitech-dev.net, or QA) runs a build that contains DK26-3294.\n2. The feature flag 'Create Assessment from File' (key create_assessment_from_file_796365, category ASSESSMENT, type BOOLEAN, public) exists on that environment. The developer's comment says it was created on the local environment, so it must also be created on the environment under test.\n3. The tester can open Feature Flags and switch this flag on and off.\n4. The Figma frames 'All Assessments / Upload & Check' are available for comparison."
+    },
+    {
+      "id": "PC-DK26-3294-02",
+      "title": "One user who can create assessments and one who cannot",
+      "definition": "1. User A has a role that can create assessments today (for example an organisation administrator) and sees the 'Create New Assessment' button on the Assessments tab.\n2. User B belongs to the same organisation and can open the Assessments tab, but their role does not include the permission to create assessments.\n3. Both users can log in on the environment under test, in separate browsers or private windows."
+    },
+    {
+      "id": "PC-DK26-3294-03",
+      "title": "A file can be uploaded on the Upload & Check step",
+      "definition": "1. A valid .xlsx workbook that follows the master template is available (for example the downloaded master template filled with a few questions).\n2. Uploading on the Upload & Check step works on the environment under test, either through the real step (DK26-3296 with the backend from DK26-3221) or through the mocks from DK26-3295.\n3. If neither is available yet, tests that need an uploaded file are blocked and are run once the upload step is delivered."
+    }
+  ],
+  "tests": [
+    {
+      "id": "TC-DK26-3294-01",
+      "title": "Create New Assessment opens a menu with Create manually and Create from file",
+      "precondition_ids": ["PC-DK26-3294-01", "PC-DK26-3294-02"],
+      "preconditions": "Build deployed with the flag on; logged in as User A, who can create assessments.",
+      "steps": [
+        "Go to Test Management > Assessments.",
+        "Click 'Create New Assessment'.",
+        "Check the options in the menu that opens and compare it with the Figma design.",
+        "Click outside the menu, then open it again and press Esc."
+      ],
+      "expected": "'Create New Assessment' opens a dropdown with two options: 'Create manually' and 'Create from file', and 'Create from file' has a 'New' badge. The button, menu, labels, badge and spacing match the design. Clicking outside or pressing Esc closes the menu without navigating."
+    },
+    {
+      "id": "TC-DK26-3294-02",
+      "title": "Create manually behaves exactly as the existing flow did",
+      "precondition_ids": ["PC-DK26-3294-01", "PC-DK26-3294-02"],
+      "preconditions": "Build deployed with the flag on; logged in as User A; at least one active test exists to assign.",
+      "steps": [
+        "On the Assessments tab, open 'Create New Assessment' and choose 'Create manually'.",
+        "Check the URL and the first screen against the existing manual flow (/dashboard/test-management/assessments/create-assessments).",
+        "Complete the manual flow: enter details, assign a test, set security options and save.",
+        "Open the new assessment from the Assessments list."
+      ],
+      "expected": "'Create manually' opens the same route and screens as the old 'Create New Assessment' button, with no new steps, fields or prompts. The assessment is created and opens from the list exactly as before."
+    },
+    {
+      "id": "TC-DK26-3294-03",
+      "title": "Create from file is hidden and its route blocked when the feature flag is off",
+      "precondition_ids": ["PC-DK26-3294-01", "PC-DK26-3294-02"],
+      "preconditions": "Build deployed; logged in as User A; the tester can toggle the flag on the Feature Flags page.",
+      "steps": [
+        "On the Feature Flags page, switch 'Create Assessment from File' off.",
+        "Reload the Assessments tab and open 'Create New Assessment'.",
+        "Open the Create from file page directly by typing or pasting its URL.",
+        "Switch the flag back on, reload the Assessments tab and open 'Create New Assessment' again."
+      ],
+      "expected": "With the flag off, 'Create from file' does not appear and 'Create manually' still works. Opening the Create from file URL directly does not show the wizard: the user is redirected to the Assessments list or a not-available page, with no errors. With the flag back on, 'Create from file' appears again."
+    },
+    {
+      "id": "TC-DK26-3294-04",
+      "title": "Create from file is hidden and its route blocked for a user without create permission",
+      "precondition_ids": ["PC-DK26-3294-01", "PC-DK26-3294-02"],
+      "preconditions": "Build deployed with the flag on; User B (no create-assessment permission) can log in; the Create from file URL is known from User A's session.",
+      "steps": [
+        "Log in as User B and go to Test Management > Assessments.",
+        "Check whether 'Create New Assessment' or a 'Create from file' option is visible.",
+        "Open the Create from file page directly by pasting its URL.",
+        "Log in as User A in another window and confirm that 'Create from file' is visible to them."
+      ],
+      "expected": "User B sees neither 'Create from file' nor any way into the wizard, just as they cannot create assessments manually today. Opening the URL directly redirects User B away or shows an access-denied page without loading the wizard. User A sees and can use the option."
+    },
+    {
+      "id": "TC-DK26-3294-05",
+      "title": "Create an Assessment from File page shell matches the design",
+      "precondition_ids": ["PC-DK26-3294-01", "PC-DK26-3294-02"],
+      "preconditions": "Build deployed with the flag on; logged in as User A.",
+      "steps": [
+        "On the Assessments tab, open 'Create New Assessment' and choose 'Create from file'.",
+        "Check the URL, the breadcrumb and which tab is active.",
+        "Check the Back link, title and subtitle.",
+        "Compare the page with the Figma frame."
+      ],
+      "expected": "A new page opens on its own route, with the Assessments tab still active. It shows a 'Back' link, the title 'Create an Assessment from File' and the subtitle 'Upload your workbook/CSV and process it into an assessment, ready for dispatch.' The layout, fonts and spacing match the design."
+    },
+    {
+      "id": "TC-DK26-3294-06",
+      "title": "Stepper shows the three steps with the active step highlighted",
+      "precondition_ids": ["PC-DK26-3294-01", "PC-DK26-3294-02"],
+      "preconditions": "Build deployed with the flag on; logged in as User A; the Create from file page is open.",
+      "steps": [
+        "Check the stepper below the subtitle.",
+        "Check the label, icon and order of each step.",
+        "Check which step is highlighted on arrival.",
+        "If a later step can be reached (see PC-DK26-3294-03), move to it and check the highlight again."
+      ],
+      "expected": "The stepper shows three steps in this order: Upload & Check, Configure Tests, Review & Create, each with its icon as in the design. Upload & Check is highlighted on arrival and the other two look inactive. When the user moves to another step, only that step is highlighted."
+    },
+    {
+      "id": "TC-DK26-3294-07",
+      "title": "Footer shows Cancel, Back and Continue, with Continue disabled until the step is valid",
+      "precondition_ids": ["PC-DK26-3294-01", "PC-DK26-3294-02", "PC-DK26-3294-03"],
+      "preconditions": "Build deployed with the flag on; logged in as User A; a valid workbook available for upload.",
+      "steps": [
+        "On the Upload & Check step with nothing uploaded, check the footer buttons and their state.",
+        "Click Continue while it looks disabled.",
+        "Upload a valid workbook and choose a domain, then check Continue again.",
+        "Continue to Configure Tests and check the footer there, including Back."
+      ],
+      "expected": "The footer matches the design: Cancel and Continue on the first step, plus Back from the second step on. Continue is disabled and does nothing until the step is valid, then becomes enabled. Back on a later step returns to the previous step."
+    },
+    {
+      "id": "TC-DK26-3294-08",
+      "title": "Steps cannot be skipped forward",
+      "precondition_ids": ["PC-DK26-3294-01", "PC-DK26-3294-02"],
+      "preconditions": "Build deployed with the flag on; logged in as User A; the Create from file page is open on Upload & Check with nothing uploaded.",
+      "steps": [
+        "Click 'Configure Tests' and then 'Review & Create' in the stepper.",
+        "If the steps have their own URLs or query parameters, open the Configure Tests and Review & Create URLs directly.",
+        "Use the browser's forward button after having visited a later step and come back, if possible.",
+        "Use the keyboard (Tab and Enter) on the stepper items."
+      ],
+      "expected": "The user stays on Upload & Check: clicking a later step in the stepper does nothing, or shows that the step is not yet available. Opening a later step's URL directly sends the user back to the first step that is not complete. No route or key press reaches Configure Tests or Review & Create before the earlier step is valid."
+    },
+    {
+      "id": "TC-DK26-3294-09",
+      "title": "Entered data is kept when moving Back and forward between steps",
+      "precondition_ids": ["PC-DK26-3294-01", "PC-DK26-3294-02", "PC-DK26-3294-03"],
+      "preconditions": "Build deployed with the flag on; logged in as User A; a valid workbook available and the later steps reachable.",
+      "steps": [
+        "Upload a valid workbook, note the file name, size and counts, choose a domain, and click Continue.",
+        "On Configure Tests, change the questions to be assigned and the time for one test and exclude another, then click Continue.",
+        "On Review & Create, enter a title, instructions, pass mark and a tag.",
+        "Click Back twice to return to Upload & Check, then click Continue twice to return to Review & Create.",
+        "At each step on the way, check the values entered earlier. Also go back once using the stepper, if it allows going back."
+      ],
+      "expected": "Going Back and forward keeps everything entered. Upload & Check still shows the same file, size, counts and chosen domain with no new upload. Configure Tests keeps the changed values and the excluded test. Review & Create keeps the title, instructions, pass mark and tag. Nothing is reset or duplicated."
+    },
+    {
+      "id": "TC-DK26-3294-10",
+      "title": "No leave confirmation before a file is uploaded",
+      "precondition_ids": ["PC-DK26-3294-01", "PC-DK26-3294-02"],
+      "preconditions": "Build deployed with the flag on; logged in as User A; the Create from file page is open with nothing uploaded.",
+      "steps": [
+        "Click Cancel.",
+        "Open Create from file again and click the Back link.",
+        "Open Create from file again and click another item in the sidebar (for example Dashboard).",
+        "Open Create from file again and click another Test Management tab (for example Questions).",
+        "Open Create from file again and use the browser's back button."
+      ],
+      "expected": "Each action leaves the page straight away with no confirmation modal. Cancel and the Back link go to the Assessments list, and the sidebar, tab and browser back go where they normally would."
+    },
+    {
+      "id": "TC-DK26-3294-11",
+      "title": "Leaving after a file is uploaded asks for confirmation on every exit route",
+      "precondition_ids": ["PC-DK26-3294-01", "PC-DK26-3294-02", "PC-DK26-3294-03"],
+      "preconditions": "Build deployed with the flag on; logged in as User A; a valid workbook available for upload.",
+      "steps": [
+        "Upload a valid workbook, then click Cancel and check the modal that appears.",
+        "Choose to stay, then click the Back link.",
+        "Choose to stay, then click a sidebar item.",
+        "Choose to stay, then click another Test Management tab, and then use the browser's back button.",
+        "Move to Configure Tests and repeat one exit there, for example a sidebar item."
+      ],
+      "expected": "After a file is uploaded, every exit (Cancel, the Back link, sidebar, another tab, browser back, from any step) opens a confirmation modal before leaving. The modal explains that the progress will be lost and offers a way to stay and a way to leave. Choosing to stay closes the modal and keeps the user on the same step with all data in place."
+    },
+    {
+      "id": "TC-DK26-3294-12",
+      "title": "Confirming leave discards the wizard and a new visit starts empty",
+      "precondition_ids": ["PC-DK26-3294-01", "PC-DK26-3294-02", "PC-DK26-3294-03"],
+      "preconditions": "Build deployed with the flag on; logged in as User A; a valid workbook available for upload.",
+      "steps": [
+        "Upload a valid workbook, choose a domain and continue to Configure Tests.",
+        "Click a sidebar item and confirm leaving in the modal.",
+        "Check where the user lands.",
+        "Go back to Assessments, choose 'Create from file' again and check the wizard.",
+        "Check the Assessments list for any new or draft assessment."
+      ],
+      "expected": "Confirming leave goes to the chosen destination. Opening Create from file again starts fresh on Upload & Check with no file, domain or test settings from before, and no leave prompt until a new file is uploaded. No assessment or draft was created by the abandoned wizard."
+    },
+    {
+      "id": "TC-DK26-3294-13",
+      "title": "Dropdown, stepper and footer are usable at different widths, in dark mode and by keyboard",
+      "precondition_ids": ["PC-DK26-3294-01", "PC-DK26-3294-02"],
+      "preconditions": "Build deployed with the flag on; logged in as User A.",
+      "steps": [
+        "At 1440 px, about 1024 px and about 768 px wide, open the 'Create New Assessment' menu and the Create from file page.",
+        "Turn on dark mode with the moon icon and check the menu, 'New' badge, stepper highlight, disabled Continue and leave modal.",
+        "Using only the keyboard (Tab, Enter, Esc), open the menu, choose 'Create from file', reach the footer buttons and, after an upload, open and dismiss the leave modal.",
+        "Check the browser console throughout."
+      ],
+      "expected": "At every width, the menu, stepper and footer fit on screen without overlapping or being cut off. In dark mode, all text, the badge, the active step and the disabled state are readable and distinct. The whole flow can be done by keyboard with a visible focus outline, the leave modal keeps focus inside it and Esc closes it. No console errors appear."
+    }
+  ]
+}

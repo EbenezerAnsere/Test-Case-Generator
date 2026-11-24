@@ -1,0 +1,134 @@
+[
+  {
+    "id": "TC-DK26-3007-01",
+    "title": "FE Event Inventory Matches Codebase",
+    "preconditions": "Access to the FE codebase and to the event tracking documentation produced by the gap analysis.",
+    "steps": [
+      "Open the FE event tracking inventory produced by the gap analysis.",
+      "Extract the full list of documented event names and their trigger points.",
+      "Search the FE codebase for every tracking/analytics dispatch call.",
+      "Compare the code-derived event list against the documented inventory in both directions."
+    ],
+    "expected": "Every event emitted by FE code appears in the documented inventory, and every documented event exists in the code. No undocumented events and no stale entries remain. Any discrepancy found is recorded as a tracked gap rather than left unlogged."
+  },
+  {
+    "id": "TC-DK26-3007-02",
+    "title": "Tracked Events Fire on Their User Actions",
+    "preconditions": "QA or staging build with event tracking enabled; browser developer tools open on the Network tab.",
+    "steps": [
+      "Log in to the application on the QA environment.",
+      "Perform each user action listed in the documented event inventory, covering navigation, create, update, delete and submit flows.",
+      "Observe the outgoing tracking requests produced by each action.",
+      "Record which actions emit an event and which emit nothing."
+    ],
+    "expected": "Each documented user action emits exactly its mapped event, once per action. No inventory action fails to emit, and no action emits unintended duplicate events."
+  },
+  {
+    "id": "TC-DK26-3007-03",
+    "title": "Tracked Events Are Delivered to Grafana",
+    "preconditions": "QA or staging environment; Grafana access with permission to query the FE event data source.",
+    "steps": [
+      "Note the current timestamp, then perform a known set of instrumented FE actions.",
+      "Open Grafana and query the FE event data source for that time window.",
+      "Verify each triggered event appears in the results.",
+      "Confirm the event name, timestamp and source attributes match what was triggered."
+    ],
+    "expected": "Every event triggered in the FE appears in Grafana within the expected ingestion delay, with matching name, timestamp and attributes. No triggered event is missing from the data source."
+  },
+  {
+    "id": "TC-DK26-3007-04",
+    "title": "Event Payload Schema Is Consistent and Complete",
+    "preconditions": "QA or staging environment; documented event schema defining required properties per event.",
+    "steps": [
+      "Trigger a representative event from each event category in the inventory.",
+      "Capture the full payload of each emitted event.",
+      "Compare each payload against the documented required properties for that event.",
+      "Check that shared properties such as user id, session id, timestamp and app version use consistent names and types across all events."
+    ],
+    "expected": "Every event payload contains all required properties with correct types. Shared properties are named and typed identically across events. No event emits a malformed, empty or partially populated payload."
+  },
+  {
+    "id": "TC-DK26-3007-05",
+    "title": "Identified Tracking Gaps Are Tracked and Accounted For",
+    "preconditions": "Gap analysis complete; access to the Jira backlog used to record findings.",
+    "steps": [
+      "Open the gap analysis output and list every gap identified.",
+      "For each gap, locate the corresponding Jira issue or backlog entry.",
+      "Confirm each entry describes the missing or incorrect event and its impact.",
+      "Verify no gap from the analysis is left without a tracked entry."
+    ],
+    "expected": "Every identified gap has a corresponding tracked Jira issue describing the missing or incorrect event. No gap is closed, dismissed or left untracked without a recorded justification."
+  },
+  {
+    "id": "TC-DK26-3007-06",
+    "title": "All Tracked Events Are Documented and Accessible",
+    "preconditions": "Access to the agreed documentation location for FE event tracking.",
+    "steps": [
+      "Open the FE event tracking documentation at its agreed location.",
+      "Confirm each tracked event has an entry covering its name, trigger, payload properties and purpose.",
+      "Verify the documentation states where the event is surfaced in Grafana.",
+      "Confirm the document is reachable by the wider team and carries a last-updated reference."
+    ],
+    "expected": "Documentation exists at the agreed location and covers every tracked event with name, trigger, payload and purpose. It is accessible to the team and reflects the current state of the code after the refinement."
+  },
+  {
+    "id": "TC-DK26-3007-07",
+    "title": "All Tracked Events Are Referenced on Grafana Dashboards",
+    "preconditions": "Grafana access with permission to view the FE observability dashboards and their panel queries.",
+    "steps": [
+      "Open the FE observability dashboards in Grafana.",
+      "List every event name referenced by the dashboard panels and queries.",
+      "Compare that list against the documented event inventory.",
+      "Identify any tracked event that no panel or query references."
+    ],
+    "expected": "Every tracked event is referenced by at least one Grafana panel, query or alert. Any event collected but not surfaced anywhere is either given a reference or recorded as a deliberate, documented exception."
+  },
+  {
+    "id": "TC-DK26-3007-08",
+    "title": "Redundant and Duplicate Events Are Removed",
+    "preconditions": "Access to the pre-refinement event list and the optimized post-refinement inventory.",
+    "steps": [
+      "Compare the pre-refinement event list against the optimized inventory.",
+      "Identify events that were merged, renamed or removed during optimization.",
+      "Trigger the affected user flows in the QA environment.",
+      "Observe the emitted events for duplicates or events that should no longer fire."
+    ],
+    "expected": "Removed events no longer fire, merged events emit a single consolidated event, and renamed events emit only under the new name. No user action produces redundant duplicate events."
+  },
+  {
+    "id": "TC-DK26-3007-09",
+    "title": "No Regression in Previously Working Events",
+    "preconditions": "QA or staging build containing the refinement changes; list of events that were working before the change.",
+    "steps": [
+      "Take the list of events confirmed working before the refinement.",
+      "Trigger each corresponding user action on the updated build.",
+      "Confirm each event still fires with its expected payload.",
+      "Query Grafana to confirm each event still arrives at the data source."
+    ],
+    "expected": "Every event that worked before the refinement still fires and still reaches Grafana. The optimization introduces no loss of existing tracking coverage."
+  },
+  {
+    "id": "TC-DK26-3007-10",
+    "title": "Event Tracking Degrades Safely on Network Failure",
+    "preconditions": "QA or staging environment; ability to simulate offline conditions or block the tracking endpoint in developer tools.",
+    "steps": [
+      "Simulate an offline state or block the tracking endpoint in developer tools.",
+      "Perform several instrumented user actions.",
+      "Confirm the application remains usable and surfaces no tracking-related error to the user.",
+      "Restore connectivity and observe whether queued events are retried or dropped as designed."
+    ],
+    "expected": "Tracking failures never block or degrade the user-facing experience and never surface an error to the user. Event loss or retry behaviour on reconnect matches the documented design."
+  },
+  {
+    "id": "TC-DK26-3007-11",
+    "title": "Event Payloads Contain No Sensitive Data",
+    "preconditions": "QA or staging environment; organisation guidance on what may not be sent to observability tooling.",
+    "steps": [
+      "Trigger events across authentication, profile, assessment and administrative flows.",
+      "Capture the full payload of each emitted event.",
+      "Inspect every property for personal or sensitive values such as passwords, tokens, full email addresses or candidate answer content.",
+      "Confirm user identifiers are sent in the agreed non-identifying form."
+    ],
+    "expected": "No event payload carries passwords, tokens, candidate answer content or other sensitive data. User identifiers appear only in the agreed non-identifying form, consistent with organisation guidance."
+  }
+]

@@ -1,0 +1,137 @@
+{
+  "preconditions": [
+    {
+      "id": "PC-DK26-3205-01",
+      "title": "Org administrator logged in on staging with the DK26-3205 fix deployed",
+      "definition": "1. Staging (amap-staging.amalitech-dev.net) runs a build that contains the DK26-3205 fix (branch feature/DK26-3203-absolute-dates-previews-and-selection-cards, commit 9bd61905a).\n2. The tester is logged in as an organisation administrator who can create skills.\n3. The browser cache has been cleared after the deployment, or a hard refresh has been done."
+    },
+    {
+      "id": "PC-DK26-3205-02",
+      "title": "Organisation holds many real assessments with known created dates",
+      "definition": "1. The organisation has more than 25 assessments, so the Assessment Assignment list has more than one page (staging currently lists 335).\n2. The created date and time of at least 3 assessments has been noted from the Assessments list cards.\n3. Several assessments have near-identical generated names (for example SMOKE-BUILD-... or QAFIX-... assessments) and were created at different times.\n4. If possible, one assessment was created on day 1-9 of a month and one at an hour of 12 (noon or midnight)."
+    },
+    {
+      "id": "PC-DK26-3205-03",
+      "title": "Skill creation is open on Step 2: Assessment Assignment",
+      "definition": "1. Go to Test Management > Skills > All Skills and click + Create New > Create Skill.\n2. On Basic Details, enter a skill title and description and click Next.\n3. Step 2: Assessment Assignment (/dashboard/test-management/skills/create-skill/assessment-assignment) is shown with the Beginner level tab selected and the 'assessments found' count shown."
+    }
+  ],
+  "tests": [
+    {
+      "id": "TC-DK26-3205-01",
+      "title": "Assessment cards on skill creation Step 2 show the created date",
+      "precondition_ids": ["PC-DK26-3205-01", "PC-DK26-3205-02", "PC-DK26-3205-03"],
+      "preconditions": "Org administrator logged in on staging with the fix deployed; real assessments exist; skill creation is open on Step 2: Assessment Assignment.",
+      "steps": [
+        "On Step 2: Assessment Assignment, with the Beginner tab selected, look at the metadata line of each assessment card on the first page.",
+        "Scroll to the bottom of the first page and check every card.",
+        "Check that the title, description, duration, test count and View Assessment link are still on each card."
+      ],
+      "expected": "Every assessment card shows a created date after the test count, for example '30 mins • 2 test • 16 Oct 2026, 7:57 AM'. No relative label such as '3 days ago' appears. The title, description, duration, test count and View Assessment link are all still shown."
+    },
+    {
+      "id": "TC-DK26-3205-02",
+      "title": "Created date is shown on every skill level tab, in search results and on later pages",
+      "precondition_ids": ["PC-DK26-3205-01", "PC-DK26-3205-02", "PC-DK26-3205-03"],
+      "preconditions": "Org administrator logged in on staging with the fix deployed; more than 25 assessments exist; skill creation is open on Step 2: Assessment Assignment.",
+      "steps": [
+        "On the Beginner tab, confirm the cards show a created date.",
+        "Switch to the Intermediate tab, and to any other level tab shown, and check the cards.",
+        "Type part of an assessment name into Search Assessment and check the cards in the results.",
+        "Clear the search, go to the second page of results and check the cards.",
+        "Go back to the first page and check the cards again."
+      ],
+      "expected": "On every level tab, in search results and on every page, each assessment card shows its created date in the same place and format. No card loses its date after switching tabs, searching, paging or going back."
+    },
+    {
+      "id": "TC-DK26-3205-03",
+      "title": "Skill Step 2 date matches the Assessments list card for the same assessment",
+      "precondition_ids": ["PC-DK26-3205-01", "PC-DK26-3205-02", "PC-DK26-3205-03"],
+      "preconditions": "Org administrator logged in on staging with the fix deployed; the created dates of at least 3 assessments have been noted from the Assessments list cards.",
+      "steps": [
+        "Open Test Management > Assessments and write down the date shown on the cards of 3 chosen assessments.",
+        "Open skill creation Step 2: Assessment Assignment.",
+        "Find the same 3 assessments using Search Assessment.",
+        "Compare the date on each Step 2 card with the date written down from the list card."
+      ],
+      "expected": "For each assessment, the Step 2 card shows exactly the same date and time as its Assessments list card, character for character, in the format DD MMM YYYY, H:MM AM/PM (for example 16 Oct 2026, 7:57 AM)."
+    },
+    {
+      "id": "TC-DK26-3205-04",
+      "title": "Created date follows the DD MMM YYYY, H:MM AM/PM format rules",
+      "precondition_ids": ["PC-DK26-3205-01", "PC-DK26-3205-02", "PC-DK26-3205-03"],
+      "preconditions": "Org administrator logged in on staging with the fix deployed; assessments exist with varied created dates, ideally including a day from 1-9 and an hour of 12; skill creation is open on Step 2.",
+      "steps": [
+        "On Step 2, look at the dates on at least 10 assessment cards across more than one page.",
+        "For each date, check the day, month, year, hour, minutes and AM/PM parts.",
+        "Look in particular for a date with a day from 1 to 9 and a time at the 12 o'clock hour."
+      ],
+      "expected": "Every date has a two-digit day (06, not 6), a three-letter English month (May, Oct), a four-digit year, a comma, an hour from 1 to 12 with no leading zero, two-digit minutes and AM or PM. Noon shows as 12:xx PM and midnight as 12:xx AM, never 0:xx."
+    },
+    {
+      "id": "TC-DK26-3205-05",
+      "title": "Created date is correct for the viewer's timezone",
+      "precondition_ids": ["PC-DK26-3205-01", "PC-DK26-3205-02", "PC-DK26-3205-03"],
+      "preconditions": "Org administrator logged in on staging with the fix deployed; skill creation is open on Step 2; browser developer tools available to read the API response and override the timezone.",
+      "steps": [
+        "Open developer tools on the Network tab and reload Step 2: Assessment Assignment.",
+        "In the assessments API response, find the created timestamp of 2 assessments and convert each to the local timezone.",
+        "Compare each with the date on that assessment's card.",
+        "In developer tools, change the timezone (Sensors > Location, for example America/New_York) and reload Step 2.",
+        "Check the same 2 cards again and compare them with the Assessments list cards viewed in the same timezone."
+      ],
+      "expected": "Each card's date matches the API timestamp converted to the viewer's local time. After the timezone change, the cards show the same moment in New York time, still as an absolute date in the same format, and they match the Assessments list cards in that timezone."
+    },
+    {
+      "id": "TC-DK26-3205-06",
+      "title": "Created date tells apart assessments with near-identical names",
+      "precondition_ids": ["PC-DK26-3205-01", "PC-DK26-3205-02", "PC-DK26-3205-03"],
+      "preconditions": "Org administrator logged in on staging with the fix deployed; several assessments share a generated name prefix and were created at different times; skill creation is open on Step 2.",
+      "steps": [
+        "On Step 2, search for a shared name prefix such as 'QAFIX' or 'SMOKE-BUILD'.",
+        "Note the title and date shown on each matching card.",
+        "Open the API response in developer tools, or the Assessments list cards, and find the created timestamp for each of those assessments.",
+        "Compare each card's date with the created timestamp of that same assessment."
+      ],
+      "expected": "Each card shows the created date of its own assessment, not a date from a neighbouring card or a shared placeholder. Assessments created at different times show different dates, so the most recent one can be identified from the cards alone."
+    },
+    {
+      "id": "TC-DK26-3205-07",
+      "title": "Created date does not crowd out the assessment card content",
+      "precondition_ids": ["PC-DK26-3205-01", "PC-DK26-3205-02", "PC-DK26-3205-03"],
+      "preconditions": "Org administrator logged in on staging with the fix deployed; at least one assessment has a long title and description; skill creation is open on Step 2.",
+      "steps": [
+        "Open Step 2 at a desktop width of 1440 px or more and check a card with a long title and description and a card with short values.",
+        "Resize the browser to about 1024 px and then to a narrow width of about 768 px, and check the same cards again.",
+        "Turn on dark mode with the moon icon and check the cards again."
+      ],
+      "expected": "At every width, the title, description, duration, test count, created date and View Assessment link are all readable. Nothing overlaps, is clipped or is pushed off the card. If the line wraps, the date moves down as a whole and is not split mid-value. The date is legible in both light and dark mode."
+    },
+    {
+      "id": "TC-DK26-3205-08",
+      "title": "Card shows no date or broken text when the API returns no created date",
+      "precondition_ids": ["PC-DK26-3205-01", "PC-DK26-3205-03"],
+      "preconditions": "Org administrator logged in on staging with the fix deployed; skill creation is open on Step 2; browser developer tools with response override (Network > Override content) available.",
+      "steps": [
+        "In developer tools, override the assessments API response for Step 2 so one assessment has its created date set to null and another has the field removed.",
+        "Reload Step 2 and look at those two cards.",
+        "Remove the overrides and reload."
+      ],
+      "expected": "Cards with no created date show their title, description, duration, test count and View Assessment link as normal, with no date and no stray bullet separator. No text such as 'Invalid Date', 'NaN', 'null', 'undefined' or '01 Jan 1970' appears, and there are no console errors. Other cards still show their dates. After the overrides are removed, every card shows its date again."
+    },
+    {
+      "id": "TC-DK26-3205-09",
+      "title": "Assessment Assignment step still works with the created date shown",
+      "precondition_ids": ["PC-DK26-3205-01", "PC-DK26-3205-02", "PC-DK26-3205-03"],
+      "preconditions": "Org administrator logged in on staging with the fix deployed; skill creation is open on Step 2. Selecting an assessment is out of scope here because of the separate defect DK26-3206.",
+      "steps": [
+        "On Step 2, check that the 'assessments found' count is shown and matches the search results.",
+        "Click View Assessment on one card and check what opens, then return to Step 2.",
+        "Check that the level tab and search you had before are kept, and that the cards still show their dates.",
+        "Skip the step as the instructions allow, go to Preview & Save and save the skill.",
+        "Open the saved skill from All Skills."
+      ],
+      "expected": "The assessments found count, Search Assessment, the level tabs and View Assessment all work as they did before the fix, and the cards still show their dates after returning. The step can be skipped and the skill saves and opens without errors. Selecting an assessment is not judged here because DK26-3206 tracks it."
+    }
+  ]
+}

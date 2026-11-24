@@ -1,0 +1,223 @@
+{
+  "preconditions": [
+    {
+      "id": "PC-DK26-3649-01",
+      "title": "PT-005 browser storage change and attempt session deployed on staging",
+      "definition": "1. Staging runs the PT-005 frontend change (identity and typing log session kept in memory, old keys removed on load) and DK26-3695 (credentials sent on every in-test request).\n2. The backend attempt session from DK26-3651 and DK26-3696 is deployed on staging (dodokpo-backend PR #1345).\n3. The value of REQUIRE_ATTEMPT_SESSION on staging is known from DevOps (DK26-3697): 'log' or 'true'. Tests that need refusals run when it is 'true'.\n4. A proctored assessment exists with several sections and questions, including a coding question (test cases and code runs), an essay or free-text question (typing logs) and a file-upload question.\n5. At least three candidate invite links are available, and two of them can be opened in the same browser."
+    },
+    {
+      "id": "PC-DK26-3649-02",
+      "title": "Tools and access for storage, cookie and API checks",
+      "definition": "1. Browser developer tools in the latest Chrome, Firefox and Safari (Application/Storage and Network tabs).\n2. An API client or intercepting proxy (Postman, Burp or similar) to replay in-test requests with and without the attempt session cookie.\n3. A reviewer account to open the candidate report, including typing activity and violations.\n4. Read access to the frontend and backend repositories and their CI runs, and to test-execution logs (Grafana) or help from Fuad Muhammed or Cletus Nehinlalei Mangu."
+    }
+  ],
+  "tests": [
+    {
+      "id": "TC-DK26-3649-01",
+      "title": "No taker identity or typing log session is in browser storage during a test",
+      "precondition_ids": ["PC-DK26-3649-01", "PC-DK26-3649-02"],
+      "preconditions": "PT-005 deployed on staging; a fresh Chrome profile; a candidate invite link; developer tools open.",
+      "steps": [
+        "Open the invite link and note the taker id and organisation id in the URL.",
+        "Start the test and answer questions in each section, including typing in the essay and coding questions.",
+        "At each section, open Application > Storage and list every sessionStorage and localStorage entry for the site.",
+        "Check for takerIdentity, typingLogCurrentSessionMeta and typingLogCurrentSessionId.",
+        "Search every stored value for the taker id, the organisation id and themeFlowId."
+      ],
+      "expected": "sessionStorage has no takerIdentity, and localStorage has no typingLogCurrentSessionMeta or typingLogCurrentSessionId at any point. No other key holds the taker id, organisation id or themeFlowId in plain text or base64. Any typing log id that remains is an opaque value that is useless without the server session."
+    },
+    {
+      "id": "TC-DK26-3649-02",
+      "title": "No taker identity or typing log session is left in storage after the test",
+      "precondition_ids": ["PC-DK26-3649-01", "PC-DK26-3649-02"],
+      "preconditions": "PT-005 deployed on staging; a candidate who has just submitted a test.",
+      "steps": [
+        "Submit the test and wait for the results page.",
+        "Check sessionStorage, localStorage and IndexedDB for the three keys and for the taker id.",
+        "Close the tab, reopen the invite link and check again.",
+        "Leave a test unfinished (close the tab mid-test), then check storage."
+      ],
+      "expected": "After submitting, on the results page, after reopening the link and after leaving mid-test, none of the three keys exist and the taker id is not stored anywhere."
+    },
+    {
+      "id": "TC-DK26-3649-03",
+      "title": "Keys left by an older version are removed on load",
+      "precondition_ids": ["PC-DK26-3649-01", "PC-DK26-3649-02"],
+      "preconditions": "PT-005 deployed on staging; developer tools available.",
+      "steps": [
+        "Before opening a link, add takerIdentity to sessionStorage, and typingLogCurrentSessionMeta and typingLogCurrentSessionId to localStorage, with values like the old ones.",
+        "Open a candidate invite link and start or continue the test.",
+        "Check both storage areas.",
+        "Continue the test and confirm it works."
+      ],
+      "expected": "All three old keys are removed when the app loads, and they do not come back. The test starts and continues normally, using the identity from the link, not from the old keys."
+    },
+    {
+      "id": "TC-DK26-3649-04",
+      "title": "Storage stays clean in Firefox and Safari",
+      "precondition_ids": ["PC-DK26-3649-01", "PC-DK26-3649-02"],
+      "preconditions": "PT-005 deployed on staging; the latest Firefox and Safari; two candidate invite links.",
+      "steps": [
+        "In Firefox, take a test with a reload mid-test and submit it.",
+        "Check sessionStorage and localStorage during and after the test.",
+        "Repeat in Safari."
+      ],
+      "expected": "In both browsers, the three keys never appear, the taker id is not stored, and the test, reload and submit work as in Chrome."
+    },
+    {
+      "id": "TC-DK26-3649-05",
+      "title": "Reloading mid-test restores the candidate's place, answers and timer",
+      "precondition_ids": ["PC-DK26-3649-01"],
+      "preconditions": "PT-005 deployed on staging; a candidate invite link.",
+      "steps": [
+        "Start the test and answer several questions, including a multiple-choice, an essay and a coding question.",
+        "Reload the page on a question in the middle of a section.",
+        "Do a hard reload (Ctrl+Shift+R) in another section, and reload once on the instructions or code-of-conduct page.",
+        "After each reload, check the identity, current section and question, saved answers and timer.",
+        "Finish and submit."
+      ],
+      "expected": "After every reload the candidate stays on the same test as the same person, with no error or 'link invalid' message. The current section, saved answers and remaining time are restored. Submit succeeds and every answer is recorded."
+    },
+    {
+      "id": "TC-DK26-3649-06",
+      "title": "The results page opens after submitting and after a reload",
+      "precondition_ids": ["PC-DK26-3649-01"],
+      "preconditions": "PT-005 deployed on staging; an assessment that shows results to candidates.",
+      "steps": [
+        "Take and submit a test.",
+        "Read the results page.",
+        "Reload the results page.",
+        "Close the tab and open the results again from the link or email the candidate received."
+      ],
+      "expected": "The results page shows the right candidate's results after submitting, after a reload and when reopened. No other candidate's data appears, and no identity is read from storage."
+    },
+    {
+      "id": "TC-DK26-3649-07",
+      "title": "Typing logs are still recorded, including across a reload",
+      "precondition_ids": ["PC-DK26-3649-01", "PC-DK26-3649-02"],
+      "preconditions": "PT-005 deployed on staging; an assessment with essay and coding questions and typing tracking (suspicious typing) on; a reviewer account.",
+      "steps": [
+        "Type an answer to the essay question, including a paste.",
+        "Reload mid-typing and continue typing.",
+        "Type in the coding question, then submit the test.",
+        "As a reviewer, open the candidate report and its typing activity."
+      ],
+      "expected": "Typing activity is recorded for both questions, including the typing before and after the reload, in one continuous session or clearly linked sessions. The paste is detected as before. No typing log request fails in the Network tab."
+    },
+    {
+      "id": "TC-DK26-3649-08",
+      "title": "Two attempts in the same browser keep their own identity and session",
+      "precondition_ids": ["PC-DK26-3649-01", "PC-DK26-3649-02"],
+      "preconditions": "PT-005 and DK26-3696 deployed on staging; two invite links for different candidates.",
+      "steps": [
+        "Open invite link 1 in a tab and start the test.",
+        "Open invite link 2 in another tab of the same browser and start that test.",
+        "Answer questions and reload in each tab in turn.",
+        "Submit both, then check each candidate's answers in the reports."
+      ],
+      "expected": "Each tab keeps its own candidate: answers saved in one tab never appear on the other attempt. Neither attempt is refused as the wrong taker, because each attempt session cookie is scoped to its own taker path. Both submits succeed."
+    },
+    {
+      "id": "TC-DK26-3649-09",
+      "title": "An HttpOnly attempt session cookie is issued when the test starts",
+      "precondition_ids": ["PC-DK26-3649-01", "PC-DK26-3649-02"],
+      "preconditions": "Attempt session deployed on staging; developer tools open on the Network and Application tabs.",
+      "steps": [
+        "Open a candidate invite link and start the test.",
+        "In the assessment-in-progress response, find the Set-Cookie header.",
+        "Read the cookie's attributes in Application > Cookies.",
+        "In the console, run document.cookie and check whether the session appears."
+      ],
+      "expected": "Starting the test sets an attempt session cookie that is HttpOnly, Secure and SameSite=Strict, with a path scoped to this taker's test-taking path. It is not visible to scripts through document.cookie."
+    },
+    {
+      "id": "TC-DK26-3649-10",
+      "title": "Every in-test request carries the attempt session",
+      "precondition_ids": ["PC-DK26-3649-01", "PC-DK26-3649-02"],
+      "preconditions": "Attempt session deployed on staging with REQUIRE_ATTEMPT_SESSION set to 'log' or 'true'; access to test-execution logs.",
+      "steps": [
+        "Take a full test with reloads, including autosave, section submit, a file upload, test cases and code runs on the coding question, and final submit.",
+        "In the Network tab, check that each of these requests, and link-status, sends the attempt session cookie.",
+        "Check the test-execution logs for that sitting for missing-session entries."
+      ],
+      "expected": "Every in-test request sends the attempt session cookie, including after reloads. The logs show no missing-session entries for the sitting."
+    },
+    {
+      "id": "TC-DK26-3649-11",
+      "title": "In-test requests with only the taker id are refused",
+      "precondition_ids": ["PC-DK26-3649-01", "PC-DK26-3649-02"],
+      "preconditions": "REQUIRE_ATTEMPT_SESSION is 'true' on staging; an attempt in progress; an API client.",
+      "steps": [
+        "Capture the autosave, upload URL, test cases, code run and submit requests of a running attempt.",
+        "Replay each one with the taker id but without the attempt session cookie.",
+        "Check the attempt's answers and status afterwards."
+      ],
+      "expected": "Each request is refused with 401. No answer is changed, no file upload URL is returned, no code runs, and the attempt is not submitted. The candidate's own attempt in the browser continues normally."
+    },
+    {
+      "id": "TC-DK26-3649-12",
+      "title": "Expired sessions and sessions for another taker are refused with 401",
+      "precondition_ids": ["PC-DK26-3649-01", "PC-DK26-3649-02"],
+      "preconditions": "REQUIRE_ATTEMPT_SESSION is 'true' on staging; two attempts in progress for different candidates; an API client; developer help to expire a session if needed.",
+      "steps": [
+        "Send candidate A's autosave request with candidate B's attempt session cookie.",
+        "Send candidate A's autosave request with an altered (invalid) cookie value.",
+        "Send it with an expired session (wait for expiry or ask a developer).",
+        "Check both attempts."
+      ],
+      "expected": "Each request is refused with 401, not 403 or 500. Neither attempt is changed."
+    },
+    {
+      "id": "TC-DK26-3649-13",
+      "title": "A candidate whose session is refused can carry on through the link without losing answers",
+      "precondition_ids": ["PC-DK26-3649-01", "PC-DK26-3649-02"],
+      "preconditions": "REQUIRE_ATTEMPT_SESSION is 'true' on staging; an attempt in progress in Chrome.",
+      "steps": [
+        "Answer several questions.",
+        "Delete the attempt session cookie in Application > Cookies.",
+        "Answer another question, so that autosave gets 401.",
+        "Follow what the page shows, returning through the invite link.",
+        "Check the saved answers and submit."
+      ],
+      "expected": "The page does not freeze or show a raw error. The candidate is sent back through the link, a new session is issued, and the test continues. No answer is lost, including the one typed when the 401 happened. The attempt is not auto-submitted with empty answers."
+    },
+    {
+      "id": "TC-DK26-3649-14",
+      "title": "Continuing on another device follows the PO decision",
+      "precondition_ids": ["PC-DK26-3649-01", "PC-DK26-3649-02"],
+      "preconditions": "REQUIRE_ATTEMPT_SESSION is 'true' on staging; the PO decision on device changes and browser crashes is recorded on the story.",
+      "steps": [
+        "Start an attempt in Chrome and answer some questions.",
+        "Open the same invite link in Firefox (as if Chrome crashed) and try to continue.",
+        "If the decision includes an admin reset, ask an admin to reset the attempt and try again.",
+        "Check the candidate report for a device-change flag."
+      ],
+      "expected": "The behaviour matches the PO decision recorded on the story: either the candidate is blocked with a clear message and can continue after an admin reset, or they continue and a device change is flagged. Answers already saved are kept. If no decision is recorded, this test fails."
+    },
+    {
+      "id": "TC-DK26-3649-15",
+      "title": "The attempt session settings are set in every environment",
+      "precondition_ids": ["PC-DK26-3649-02"],
+      "preconditions": "Help from DevOps (Cletus Nehinlalei Mangu) to read the running task definitions.",
+      "steps": [
+        "Check the running test-execution task definition on dev, staging and production for REQUIRE_ATTEMPT_SESSION and ATTEMPT_SESSION_COOKIE_PATH.",
+        "Note each environment's value.",
+        "Check that production was switched on only after the frontend change was live there."
+      ],
+      "expected": "Both settings appear on the running task definitions in all three environments. Staging is 'true' when the refusal tests run. Production follows the release, and was never 'true' before the frontend sent the session."
+    },
+    {
+      "id": "TC-DK26-3649-16",
+      "title": "Unit tests cover storage removal and the attempt session",
+      "precondition_ids": ["PC-DK26-3649-02"],
+      "preconditions": "Read access to the frontend and backend repositories and CI.",
+      "steps": [
+        "Open the frontend tests for test-taking.service.ts and typing-log.service.ts.",
+        "Check that they cover: identity kept in memory and recovered from the route, typing session not stored, old keys removed on load, credentials sent on in-test requests and 401 handling.",
+        "Open the backend tests from PR #1345 and DK26-3696 for missing, expired and wrong-taker sessions.",
+        "Open the latest CI runs."
+      ],
+      "expected": "The tests exist for each case listed, and all of them pass in CI."
+    }
+  ]
+}

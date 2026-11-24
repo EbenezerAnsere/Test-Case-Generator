@@ -1,0 +1,179 @@
+{
+  "preconditions": [
+    {
+      "id": "PC-DK26-3153-01",
+      "title": "Findings page and the source assumption pages are available",
+      "definition": "1. The Confluence page 'Event Monitoring Assumptions: Validation Against Production Records' (https://amali-tech.atlassian.net/wiki/x/AwCmw) is accessible.\n2. The source pages it tests against are accessible: 'Lifecycle Events and Observability Cost' (catalogue dated 2026-10-16) and 'Activity Tracking & Audit Logging' sections 7.14 and 7.15.\n3. The tester has read the page's summary, assumption register, findings, sample, population checks, limitations and backlog sections."
+    },
+    {
+      "id": "PC-DK26-3153-02",
+      "title": "Athena access to the production snapshot used in the study",
+      "definition": "1. The tester can run queries in Athena in the dodokpo-prod-workgroup workgroup.\n2. The dodokpo_prod_bronze database with load_date = '2026-10-19' is available, covering the 6 PostgreSQL databases and the reporting DynamoDB table.\n3. The study's query pack (profile, volumes, journey checks, duplicates, reconciliation, sample, retakes) is available from the dodokpo-data-analytics repository, or from the author (Daniel Forson) if it has not been committed yet.\n4. Results are compared with the page using the same windows: all journeys 2024-02-12 to 2026-10-19, recent journeys created on or after 2026-09-16, and volumes over 2026-09-16 to 2026-10-15."
+    },
+    {
+      "id": "PC-DK26-3153-03",
+      "title": "Jira access to the DK26 backlog and related stories",
+      "definition": "1. The tester can search and open issues in the DK26 project.\n2. The related stories DK26-3167 (Authoritative Assessment Lifecycle Events) and DK26-3168 (Assessment Journey Traceability) are accessible.\n3. The parent epic DK26-3145 (Validate Analytics Readiness for Product Decisions) is accessible."
+    }
+  ],
+  "tests": [
+    {
+      "id": "TC-DK26-3153-01",
+      "title": "Core assessment journey from start to submission is fully mapped to production records",
+      "precondition_ids": ["PC-DK26-3153-01", "PC-DK26-3153-02"],
+      "preconditions": "Findings page available; Athena access to dodokpo_prod_bronze load_date 2026-10-19.",
+      "steps": [
+        "Open the 'Where each journey step is recorded' table on the findings page.",
+        "Check that it covers every step from invite to result: invited, link viewed, compatibility check, consent, ID capture, assessment started, test submitted, violation recorded, assessment submitted and result in reporting.",
+        "For each step, run a query in Athena that confirms the named table and action exist and can be joined on the stated key (assessmentTakerId, testId, clientEventKey or candidateId).",
+        "Check that the 'since' dates given for newer tables (CompatibilityCheckLog 2026-05-17, ProctoringConsent 2026-09-09, ProctoringViolationEvent 2026-07-25) match the earliest record in each table."
+      ],
+      "expected": "Every step of the core journey from assessment start to submission is mapped to a real production table or action, with a join key that works in Athena. No step is left unmapped, and the start date given for each newer table matches its earliest record."
+    },
+    {
+      "id": "TC-DK26-3153-02",
+      "title": "Sample meets the agreed size and every sampled journey is traced end to end",
+      "precondition_ids": ["PC-DK26-3153-01", "PC-DK26-3153-02"],
+      "preconditions": "Findings page available; Athena access to the 2026-10-19 snapshot.",
+      "steps": [
+        "Open the 'Sample: 12 completed journeys' table and count the journeys and categories.",
+        "Check that every sampled journey is a completed journey from the recent window (created on or after 2026-09-16).",
+        "Pick at least 3 sampled journeys from different categories, for example dcca81d7 (clean), 7b88c167 (multi-test) and 8e7797fd (retake).",
+        "For each one, query the v, s, ts, d, tr, pve and rep counts in Athena and compare them with the table.",
+        "Compare the 'Observed' note for each with the records."
+      ],
+      "expected": "The sample has at least 10 completed journeys (12 are reported), two from each of the six categories, all from the recent window. For every journey re-checked, the counts in Athena match the table exactly and the 'Observed' note is true of the records, for example 7b88c167's completion log being about 1 second before its last test submission."
+    },
+    {
+      "id": "TC-DK26-3153-03",
+      "title": "Expected event volumes are compared with actual captured volumes and reproduce",
+      "precondition_ids": ["PC-DK26-3153-01", "PC-DK26-3153-02"],
+      "preconditions": "Findings page and the Lifecycle Events and Observability Cost catalogue available; Athena access to the 2026-10-19 snapshot.",
+      "steps": [
+        "List each volume assumption A1 to A11 with the catalogue's expected daily rate.",
+        "Re-run the volume queries for the window 2026-09-16 to 2026-10-15.",
+        "Compare the recomputed daily rates with those on the page, for example A1 8.1 starts a day, A4 8.3 link views a day, A6 9.1 test submissions a day and A10 8.0 results ingested a day.",
+        "Check the summary claim that 9 of the 11 volume figures are within about 1 event a day of the catalogue, and that the exceptions are assessment.started and the email events."
+      ],
+      "expected": "Every volume assumption has an expected and an actual figure side by side. The recomputed daily rates match the page to one decimal place. The summary's '9 of 11 within about 1 a day' claim holds, with A5 (8.1 a day against 6 expected) and A11 (emails, not usable) as the only exceptions."
+    },
+    {
+      "id": "TC-DK26-3153-04",
+      "title": "Event capture gaps are identified with counts that reproduce",
+      "precondition_ids": ["PC-DK26-3153-01", "PC-DK26-3153-02"],
+      "preconditions": "Findings page available; Athena access to the 2026-10-19 snapshot.",
+      "steps": [
+        "For F5, count the reporting EVENT items and find the latest timestamp. Count ProctoringViolationEvent rows overall, and those for recent journeys after 2026-09-08.",
+        "For F6, count violations since 2026-07-25 that have a copy in WindowViolation or Idletime, linked by sourceEventId, and break the misses down by type.",
+        "For F8, count AssessmentTaker rows where resultEmailSentAt has a value, and check what the values hold.",
+        "For A8, count recent completed journeys with no consent record and with no compatibility check.",
+        "Compare each result with the page."
+      ],
+      "expected": "Each gap is reproduced. The reporting store holds 430 events, none after 2026-09-08 20:07 UTC (430 of 1,797, 24%, with no WINDOW_MINIMIZED events). 1,702 of 1,777 violations have a legacy copy, and UNREADABLE_ID is never copied. 96 resultEmailSentAt values, all email addresses. 9 recent completed journeys with no consent and 9 with no compatibility check. Each gap is stated with its scope and impact."
+    },
+    {
+      "id": "TC-DK26-3153-05",
+      "title": "Duplicate events are identified and told apart from retakes",
+      "precondition_ids": ["PC-DK26-3153-01", "PC-DK26-3153-02"],
+      "preconditions": "Findings page available; Athena access to the 2026-10-19 snapshot.",
+      "steps": [
+        "Count duplicate clientEventKey values in ProctoringViolationEvent.",
+        "Group AssessmentTakingLog start, completion and test-submission rows by taker (and testId for submissions) and find groups with more than one row.",
+        "Split the groups into those less than a minute apart, less than a day apart, and more than a day apart (retakes).",
+        "Compare the counts with A15 and F2 on the page."
+      ],
+      "expected": "There are 0 duplicate clientEventKey values in 1,797 violation rows. The journey log counts match the page: within a minute, 9 start, 13 completion and 24 test-submission groups. Under a day apart, 21, 25 and 38 groups. 341 groups more than a day apart are retakes. The page clearly says that retakes and real duplicates can only be told apart by the time gap."
+    },
+    {
+      "id": "TC-DK26-3153-06",
+      "title": "Sequencing issues in the journey are identified with counts that reproduce",
+      "precondition_ids": ["PC-DK26-3153-01", "PC-DK26-3153-02"],
+      "preconditions": "Findings page available; Athena access to the 2026-10-19 snapshot.",
+      "steps": [
+        "For each journey with a completion log, compare the ASSESSMENT_COMPLETION timestamp with the last test submission timestamp.",
+        "Count the cases where completion comes first, split into under a second, under a minute and more than an hour, for all journeys and for recent ones.",
+        "Run the ordering checks from 'Population checks': started before link viewed, completion before start, and test submission before start.",
+        "For F7, compare AssessmentTaker.endTime with the completion log for auto-submitted journeys, and count those more than a minute apart."
+      ],
+      "expected": "The counts match the page. Completion comes before the last test submission in 1,247 journeys within a minute (644 under a second, 603 under a minute), and in 43 of 289 recent completed journeys. 0 journeys start before the link is viewed, 0 complete before they start, and 97 (8 recent) have a test submission before the start. 404 journeys have endTime and completion more than a minute apart. The page explains the effect on event-ordered funnels."
+    },
+    {
+      "id": "TC-DK26-3153-07",
+      "title": "Missing and unreliable identifiers are identified",
+      "precondition_ids": ["PC-DK26-3153-01", "PC-DK26-3153-02"],
+      "preconditions": "Findings page available; Athena access to the 2026-10-19 snapshot.",
+      "steps": [
+        "Check what share of journeys have organisation, assessment, dispatch and taker IDs, for all journeys and for recent ones.",
+        "Count violation rows with no test ID and break them down by violation type.",
+        "Check the attemptNumber values in TestResult and ProctoringViolationEvent for journeys with an attempt count of 2 or 3.",
+        "Check every journey table for a session or correlation ID column.",
+        "Compare the results with A12, A13 and A14 on the page."
+      ],
+      "expected": "Organisation, assessment and taker IDs are present on 100% of journeys. Dispatch ID is on 100% of recent journeys but missing on about 95% of older ones. 26 violation rows have no test ID, mostly UNREADABLE_ID. attemptNumber is always 1 in TestResult and ProctoringViolationEvent, including for the 1,517 retake journeys. No journey table has a session or correlation ID. All of these are reported as findings."
+    },
+    {
+      "id": "TC-DK26-3153-08",
+      "title": "Every assumption is given a supported verdict of valid, partially valid or invalid",
+      "precondition_ids": ["PC-DK26-3153-01"],
+      "preconditions": "Findings page and source assumption pages available.",
+      "steps": [
+        "Open the assumption register and list A1 to A16 with their source, verdict and evidence.",
+        "Check that each assumption traces to a real statement in the catalogue or in Activity Tracking §1, §7.14 or §7.15.",
+        "Count the verdicts and compare them with the summary.",
+        "For each Partially valid, Invalid and Cannot be validated verdict, check that the evidence says what holds, what does not, and links to a finding where one applies."
+      ],
+      "expected": "All 16 assumptions have a source, a verdict and evidence. Every verdict is Valid, Partially valid, Invalid or Cannot be validated from the database. The counts match the summary: 9 valid, 5 partially valid, 1 invalid (A13) and 1 cannot be validated (A11). No verdict goes against its own evidence."
+    },
+    {
+      "id": "TC-DK26-3153-09",
+      "title": "Follow-up backlog items exist in Jira for every gap that blocks analytics readiness",
+      "precondition_ids": ["PC-DK26-3153-01", "PC-DK26-3153-03"],
+      "preconditions": "Findings page available; Jira access to DK26, including DK26-3167, DK26-3168 and epic DK26-3145.",
+      "steps": [
+        "List the proposed backlog items B1 to B9 and note which ones block analytics ('Yes' or 'Partly').",
+        "Search DK26 for a Jira issue matching each of B1, B2, B4 and B7, and for each 'Partly' item (B5, B6, B8).",
+        "Check that B3 is linked to DK26-3167 or DK26-3168, not raised as a duplicate.",
+        "Check that each backlog issue links back to DK26-3153 or to epic DK26-3145, names an owning team and describes the gap and its evidence."
+      ],
+      "expected": "Every blocking item (B1, B2, B3, B4 and B7) and every partly blocking item (B5, B6 and B8) has a Jira issue. B3 is linked to DK26-3167 or DK26-3168 instead of being duplicated. Each issue links to DK26-3153 or DK26-3145 and states the gap, its evidence and the owning team. As of 2026-10-20 the page says these are still 'to be raised', so this test fails until they exist."
+    },
+    {
+      "id": "TC-DK26-3153-10",
+      "title": "Analytics readiness conclusions match the findings",
+      "precondition_ids": ["PC-DK26-3153-01"],
+      "preconditions": "Findings page available.",
+      "steps": [
+        "Open the 'Impact on analytics readiness' table.",
+        "For each use marked Yes or Yes, with care, check that the condition given deals with the related findings (F3, F4, F5, F6, F7).",
+        "For each use marked No, check that it is backed by a finding and a backlog item.",
+        "Compare the table with the readiness statement in the summary."
+      ],
+      "expected": "Every readiness verdict follows from the findings. Uses marked Yes or Yes, with care name a condition that avoids the known gaps, for example taking status from test-creation, timing from the last test submission, and violations from ProctoringViolationEvent. Uses marked No (session sequencing, retake analytics, email metrics) point to F1, F3, F8 and A13 and to backlog items. The summary agrees with the table."
+    },
+    {
+      "id": "TC-DK26-3153-11",
+      "title": "Results can be reproduced from the documented queries and source",
+      "precondition_ids": ["PC-DK26-3153-01", "PC-DK26-3153-02"],
+      "preconditions": "Findings page available; Athena access; the dodokpo-data-analytics repository available.",
+      "steps": [
+        "Check that the query pack is committed to the dodokpo-data-analytics repository and is linked to DK26-3153.",
+        "Run the population-check queries in the dodokpo-prod-workgroup workgroup on dodokpo_prod_bronze with load_date = '2026-10-19'.",
+        "Compare every row of the 'Population checks' table, for all and recent journeys, with the results.",
+        "Note the data scanned by the full query pack."
+      ],
+      "expected": "The query pack is in the repository and linked to the ticket. Every population check reproduces exactly: for example 1,782 and 43 completions before the last test submission, 89 and 4 TestResults dated 1970, 1,991 and 39 status mismatches. The full pack scans under 100 MB as stated."
+    },
+    {
+      "id": "TC-DK26-3153-12",
+      "title": "Limitations are stated and the findings contain no personal data",
+      "precondition_ids": ["PC-DK26-3153-01"],
+      "preconditions": "Findings page available.",
+      "steps": [
+        "Read the Limitations section and check that it covers the snapshot-only view, the lack of log-side access, the tables not exported, the timestamp and timezone handling, pseudonymised emails and the late start of newer tables.",
+        "Check that findings which depend on a limitation say so, for example that the cause of the A5 gap is unconfirmed and that gaps under a second may be clock differences.",
+        "Search the page and its tables for candidate names, real email addresses, full candidate IDs or other personal data."
+      ],
+      "expected": "Every known limitation is stated, and each finding it affects is qualified. The page has no candidate names, real email addresses or full IDs: journeys appear only by shortened taker ID and emails only as pseudonyms."
+    }
+  ]
+}

@@ -1,0 +1,213 @@
+{
+  "preconditions": [
+    {
+      "id": "PC-DK26-3642-01",
+      "title": "Server-side fingerprint check deployed on staging in flag-only mode",
+      "definition": "1. Staging runs the backend changes from dodokpo-backend PR #1344 (candidate side) and PR #1346 (admin side).\n2. The fingerprint signing secret is set for staging (DK26-3644), so the new check is switched on.\n3. The frontend changes from DK26-3643 and PT-001 (DK26-3640) are deployed together, so the fingerprint is no longer cached in browser storage.\n4. The check runs in flag-only mode: a device change is recorded as a DEVICE_CHANGE proctoring violation but the request is not refused.\n5. A proctored assessment with several questions, including at least one file-upload question, exists. Invite links are available for test candidates.\n6. A reviewer account can open the candidate report and its violations list."
+    },
+    {
+      "id": "PC-DK26-3642-02",
+      "title": "Tools to read and change requests and storage",
+      "definition": "1. Browser developer tools are available (Network tab and Application/Storage tab).\n2. An API client or intercepting proxy (Postman, Burp or similar) can replay a test-taking request with a changed or missing x-device-fingerprint header, using the candidate's own token.\n3. The latest Chrome, Firefox and Safari are available, with Safari on macOS.\n4. Read access to the backend repository and its CI results, so that unit and integration tests can be checked.\n5. Where possible, read access to staging Redis and the attempt record, or a backend developer (Fuad Muhammed) is available to check stored values."
+    }
+  ],
+  "tests": [
+    {
+      "id": "TC-DK26-3642-01",
+      "title": "A different fingerprint on a running attempt is caught by the server and shown on the candidate report",
+      "precondition_ids": ["PC-DK26-3642-01", "PC-DK26-3642-02"],
+      "preconditions": "Server check deployed on staging in flag-only mode; a candidate invite link; an API client or proxy to replay requests.",
+      "steps": [
+        "Open the invite link in Chrome, start the attempt and answer one question.",
+        "In the Network tab, note the x-device-fingerprint header sent on the link-status and assessment-in-progress requests.",
+        "Replay the assessment-in-progress request with the candidate's token but a different x-device-fingerprint value.",
+        "Continue and submit the attempt in Chrome.",
+        "As a reviewer, open the candidate report and its proctoring violations."
+      ],
+      "expected": "The request with the changed fingerprint is detected by the server and a device-change violation is recorded on the attempt. The candidate report shows the violation with the time it happened, under a readable name such as 'Device change' (or DEVICE_CHANGE until the frontend label change is deployed). In flag-only mode the request is not refused, and the candidate can continue and submit."
+    },
+    {
+      "id": "TC-DK26-3642-02",
+      "title": "Continuing a running attempt from a second browser is flagged once and not blocked",
+      "precondition_ids": ["PC-DK26-3642-01"],
+      "preconditions": "Server check deployed on staging in flag-only mode; a candidate invite link.",
+      "steps": [
+        "Start the attempt in Chrome and answer one question.",
+        "Open the same invite link in Firefox (or a Chrome private window) and continue the same attempt there.",
+        "Answer another question in the second browser and submit.",
+        "As a reviewer, open the candidate report and count the device-change violations."
+      ],
+      "expected": "Exactly one device-change violation is recorded for the switch to the second browser, not one per request. The candidate is not blocked, and the answers from both browsers are saved. This is the attack in the report: a proxy taking over the attempt on another machine is now visible to the reviewer."
+    },
+    {
+      "id": "TC-DK26-3642-03",
+      "title": "Autosave, submit and upload URL routes check the fingerprint",
+      "precondition_ids": ["PC-DK26-3642-01", "PC-DK26-3642-02"],
+      "preconditions": "Server check deployed on staging in flag-only mode; an assessment with a file-upload question; an API client or proxy.",
+      "steps": [
+        "Start an attempt in Chrome and capture the autosave request, the upload URL request (from the file-upload question) and the submit request.",
+        "Replay the autosave request with a different x-device-fingerprint and check the report.",
+        "Start a new attempt and replay the upload URL request with a different fingerprint, then check the report.",
+        "Start a new attempt and send the submit request with a different fingerprint, then check the report."
+      ],
+      "expected": "Each of the three routes compares the fingerprint, not only link-status and assessment-in-progress. A mismatch on autosave, on the upload URL request and on submit is each recorded as a device-change violation on that attempt. In flag-only mode the answer is still saved, the upload URL is still returned and the submit still succeeds."
+    },
+    {
+      "id": "TC-DK26-3642-04",
+      "title": "A request with no fingerprint header during a running attempt is not skipped",
+      "precondition_ids": ["PC-DK26-3642-01", "PC-DK26-3642-02"],
+      "preconditions": "Server check deployed on staging in flag-only mode; an API client or proxy.",
+      "steps": [
+        "Start an attempt in Chrome and answer one question.",
+        "Replay the autosave request with the x-device-fingerprint header removed.",
+        "Replay the assessment-in-progress request with the header present but empty.",
+        "Open the candidate report as a reviewer."
+      ],
+      "expected": "A missing or empty header is treated as a failed check, not as a pass: each request is recorded as a device-change (or missing-fingerprint) violation on the attempt. No error page or 500 response is shown, and in flag-only mode the requests still succeed."
+    },
+    {
+      "id": "TC-DK26-3642-05",
+      "title": "A lost device binding is re-created from the attempt record, and checks continue",
+      "precondition_ids": ["PC-DK26-3642-01", "PC-DK26-3642-02"],
+      "preconditions": "Server check deployed on staging; Redis access, or a backend developer who can remove the binding key.",
+      "steps": [
+        "Start an attempt in Chrome and answer one question.",
+        "Delete the attempt's fingerprint binding from Redis (or wait for it to expire), as if Redis had restarted.",
+        "Continue answering in Chrome.",
+        "Replay an autosave request with a different fingerprint.",
+        "Open the candidate report."
+      ],
+      "expected": "After the binding is lost, the check is not skipped. The binding is restored from the value saved with the attempt, so continuing in Chrome raises no violation, while the request with a different fingerprint is still recorded as a device change. If the binding cannot be restored, the attempt is flagged rather than passed."
+    },
+    {
+      "id": "TC-DK26-3642-06",
+      "title": "The server stores only an HMAC of the fingerprint and never sends it back",
+      "precondition_ids": ["PC-DK26-3642-01", "PC-DK26-3642-02"],
+      "preconditions": "Server check deployed on staging; read access to Redis and the attempt record, or help from a backend developer.",
+      "steps": [
+        "Start an attempt and note the x-device-fingerprint value sent by the browser.",
+        "Read the binding stored in Redis and the value saved with the attempt.",
+        "Compare the stored value with the raw fingerprint.",
+        "Search every test-taking response body and header in the Network tab, and the candidate report API response, for the raw fingerprint and the stored value."
+      ],
+      "expected": "The stored value is an HMAC made with the server-held secret, not the raw fingerprint, and it is saved with the attempt as well as in Redis. Neither the raw fingerprint nor the stored HMAC appears in any API response to the browser. The violation details shown to reviewers do not contain either value."
+    },
+    {
+      "id": "TC-DK26-3642-07",
+      "title": "No binding is created for a test taker that does not exist",
+      "precondition_ids": ["PC-DK26-3642-01", "PC-DK26-3642-02"],
+      "preconditions": "Server check deployed on staging; an API client; Redis access or help from a backend developer.",
+      "steps": [
+        "Send a link-status request with a made-up taker id and a fingerprint header.",
+        "Send it again with several other random taker ids.",
+        "Check Redis for fingerprint bindings for those ids."
+      ],
+      "expected": "Requests for a taker that does not exist are refused with a not-found or unauthorised response. No fingerprint binding is created in Redis or elsewhere for any made-up id."
+    },
+    {
+      "id": "TC-DK26-3642-08",
+      "title": "A normal attempt with reloads in Chrome raises no device-change flag",
+      "precondition_ids": ["PC-DK26-3642-01"],
+      "preconditions": "Server check deployed on staging; the latest Chrome; a new candidate invite link.",
+      "steps": [
+        "Open the invite link in Chrome and start the attempt.",
+        "During the attempt, reload the page 10 times, including hard reloads (Ctrl+Shift+R), on different questions.",
+        "Duplicate the tab once and continue in the duplicate.",
+        "Close the browser, reopen it on the same machine and resume the attempt with the same link.",
+        "Submit, then open the candidate report as a reviewer."
+      ],
+      "expected": "The x-device-fingerprint value is the same on every request after each reload, duplicate tab and browser restart. The candidate is never logged out or blocked, and the candidate report shows no device-change violation."
+    },
+    {
+      "id": "TC-DK26-3642-09",
+      "title": "A normal attempt with reloads in Firefox raises no device-change flag",
+      "precondition_ids": ["PC-DK26-3642-01"],
+      "preconditions": "Server check deployed on staging; the latest Firefox; a new candidate invite link.",
+      "steps": [
+        "Open the invite link in Firefox and start the attempt.",
+        "During the attempt, reload the page 10 times, including hard reloads (Ctrl+Shift+R), on different questions.",
+        "Close the browser, reopen it on the same machine and resume the attempt.",
+        "Submit, then open the candidate report as a reviewer."
+      ],
+      "expected": "The fingerprint stays the same on every request, including with Firefox's default tracking protection on. The candidate is never logged out or blocked, and the candidate report shows no device-change violation."
+    },
+    {
+      "id": "TC-DK26-3642-10",
+      "title": "A normal attempt with reloads in Safari raises no device-change flag",
+      "precondition_ids": ["PC-DK26-3642-01"],
+      "preconditions": "Server check deployed on staging; the latest Safari on macOS; a new candidate invite link.",
+      "steps": [
+        "Open the invite link in Safari and start the attempt.",
+        "During the attempt, reload the page 10 times, including reloads from origin (Cmd+Option+R), on different questions.",
+        "Quit Safari, reopen it and resume the attempt.",
+        "Submit, then open the candidate report as a reviewer."
+      ],
+      "expected": "The fingerprint stays the same on every request, despite Safari's fingerprinting protections. The candidate is never logged out or blocked, and the candidate report shows no device-change violation. Any false flag is reported before blocking mode is discussed with the PO."
+    },
+    {
+      "id": "TC-DK26-3642-11",
+      "title": "No fingerprint value, plain or encrypted, is in browser storage during a test",
+      "precondition_ids": ["PC-DK26-3642-01", "PC-DK26-3642-02"],
+      "preconditions": "Server and frontend changes deployed on staging; a fresh browser profile; a candidate invite link.",
+      "steps": [
+        "Start an attempt and note the x-device-fingerprint header value from the Network tab.",
+        "Open Application/Storage and list every entry in localStorage, sessionStorage and IndexedDB for the site.",
+        "Check for the keys fp_cached_plain, fp_refresh_once, fp_persistent and the BrowserTagDB store.",
+        "Search every value, including base64-decoded values and the access token entry, for the fingerprint.",
+        "Repeat after a reload and after submitting the attempt, in Chrome, Firefox and Safari."
+      ],
+      "expected": "None of the old fingerprint keys or the BrowserTagDB store exist. The fingerprint does not appear in any storage, plain, base64-encoded or encrypted, and the token entry no longer contains it. The header is still sent on every request, because the value is kept only in memory."
+    },
+    {
+      "id": "TC-DK26-3642-12",
+      "title": "Fingerprint copies left by an older version are removed on load",
+      "precondition_ids": ["PC-DK26-3642-01", "PC-DK26-3642-02"],
+      "preconditions": "Server and frontend changes deployed on staging; developer tools available.",
+      "steps": [
+        "In the browser, manually add the old keys: fp_cached_plain and fp_refresh_once in sessionStorage, fp_persistent in localStorage, and a BrowserTagDB IndexedDB store with a value.",
+        "Reload the page.",
+        "Check all three storage areas.",
+        "Sign in, or open a candidate invite link, and start an attempt."
+      ],
+      "expected": "After the reload, all the old keys and the BrowserTagDB store are removed. The user is sent to the login page or stays signed in, as described in DK26-3643. Starting an attempt works, and none of the old values comes back."
+    },
+    {
+      "id": "TC-DK26-3642-13",
+      "title": "Unit and integration tests cover a match, a mismatch and a missing header",
+      "precondition_ids": ["PC-DK26-3642-02"],
+      "preconditions": "Read access to dodokpo-backend PRs #1344 and #1346 and their CI runs.",
+      "steps": [
+        "Open the test files changed in PR #1344 and find the tests for the fingerprint check in test-execution.",
+        "Confirm there are tests for a matching fingerprint, a different fingerprint and a missing header, on start or link-status and on autosave, submit and the upload URL routes.",
+        "Do the same for PR #1346 (gateway check on admin tokens).",
+        "Open the latest CI run of each PR."
+      ],
+      "expected": "Both PRs have unit and integration tests for the three cases: a match passes with no violation, a mismatch records a device-change violation, and a missing header is not treated as a pass. The tests also check that the stored value is an HMAC. All tests pass in CI."
+    },
+    {
+      "id": "TC-DK26-3642-14",
+      "title": "Admin sessions carry a fingerprint HMAC and a device change is recorded",
+      "precondition_ids": ["PC-DK26-3642-01", "PC-DK26-3642-02"],
+      "preconditions": "PR #1346 deployed on staging; an organisation admin account; an API client.",
+      "steps": [
+        "Sign in as an admin in Chrome and decode the access token (for example at jwt.io, using a non-production token).",
+        "Check what the token holds for the fingerprint.",
+        "Call an admin API with the same token but a different x-device-fingerprint header, then with no header.",
+        "Ask a backend developer, or check the logs, whether the gateway recorded the mismatch."
+      ],
+      "expected": "The token holds an HMAC of the fingerprint, never the raw value. The gateway compares it on each request. For now a mismatch or missing header is only recorded and the request succeeds, as stated in the ticket comment. The browser-side fingerprint compare in auth.service.ts is no longer used."
+    },
+    {
+      "id": "TC-DK26-3642-15",
+      "title": "The check stays off without the signing secret and logs no secret",
+      "precondition_ids": ["PC-DK26-3642-02"],
+      "preconditions": "Access to the dev or staging environment config and service logs, with help from DevOps (Cletus) if needed.",
+      "steps": [
+        "Confirm the signing secret is set for staging (DK26-3644) and that test-execution and api-gateway start without errors.",
+        "Search the service logs from a test attempt, including one with a device change, for the secret, the raw fingerprint and the HMAC.",
+        "On a dev environment with the secret removed, start an attempt and check the result (only if DevOps agrees)."
+      ],
+      "expected": "With the secret set, both services start and the check runs. No log contains the secret or the raw fingerprint. Without the secret, the check is switched off as described in the ticket comment, and test taking still works; it does not crash or block candidates."
+    }
+  ]
+}
